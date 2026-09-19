@@ -1,0 +1,12 @@
+
+usethis::create_package(".", open = FALSE)
+
+
+usethis::create_github_token()
+
+
+gitcreds::gitcreds_set()
+
+
+install.packages(c("nimble", "coda", "testthat", "MCMCvis", "knitr", "rmarkdown"))
+devtools::document()
