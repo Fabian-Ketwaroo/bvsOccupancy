@@ -1,0 +1,53 @@
+# bvsOccupancy 0.1.0
+
+First release, accompanying the manuscript.
+
+## Models
+
+* `bvsSSOM()` fits a single-season single-species occupancy model with
+  variable selection on occupancy and detection.
+* `bvsSDOM()` fits a dynamic occupancy model with variable selection on
+  initial occupancy, persistence, colonisation and detection.
+* `bvsMSOM()` fits a multi-species occupancy model with species-specific
+  variable selection and conjugate community-level parameters.
+
+## Supporting functions
+
+* `bvsDesign()` and `bvsDesignArray()` build design matrices and derive the
+  covariate grouping from a model formula, so that categorical covariates are
+  selected as a block without the grouping having to be written out by hand.
+* `bvsPrior()` constructs the prior on the regression coefficients.
+* `inclusionProbs()` and `medianModel()` summarise the selection results.
+* `simSSOM()`, `simSDOM()` and `simMSOM()` simulate data from each model.
+
+## Changes to the reference implementation
+
+Four changes were made while packaging the manuscript code. The first two
+are corrections to the samplers themselves and affect results; the last two
+are defensive checks in the R layer.
+
+* The persistence and colonisation samplers now take the node holding the
+  next season's occupancy state from their `control` list. Previously it came
+  from `model$getDependencies()`, which returns nodes in model declaration
+  order, while the current season's state came from `expandNodeNames()`. For a
+  matrix-valued state declared inside nested loops these two orderings differ,
+  so the two vectors could be compared out of step. The fitting functions now
+  pass both node vectors explicitly and check that they align.
+
+* Design matrices are flattened in the order of the node names the model
+  actually reports, rather than assuming a column-major layout, and the row
+  counts are checked against the number of nodes. In the reference code the
+  flattened persistence design covered all seasons while the state vector
+  covered all but the last, so the two had different lengths and R's recycling
+  rules silently selected the wrong rows.
+
+* Priors supplied through `prior.occ`, `prior.per`, `prior.col` and
+  `prior.det` are now validated against the design they belong to. The length
+  of the prior mean, the dimensions and symmetry of the prior covariance, and
+  its positive definiteness are all checked before the model is built, so a
+  mismatched prior produces a clear message in R rather than an opaque failure
+  inside nimble.
+
+* `simSDOM()` compared `dim(Jindex)` against a double vector, so the
+  comparison was never true and every valid `Jindex` was rejected. Simulating
+  unequal numbers of visits across sites and seasons now works.

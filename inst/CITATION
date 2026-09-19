@@ -1,0 +1,29 @@
+citHeader("To cite bvsOccupancy in publications, please cite the methodology paper and, where the implementation matters, the package itself.")
+
+bibentry(
+  bibtype  = "Article",
+  title    = "Bayesian variable selection for single-season, dynamic and multi-species occupancy models",
+  author   = c(person("Fabian", "Ketwaroo")),
+  journal  = "Biometrics",
+  year     = "2026",
+  note     = "Under review",
+  textVersion = paste(
+    "Ketwaroo, F. (2026).",
+    "Bayesian variable selection for single-season, dynamic and multi-species",
+    "occupancy models. Biometrics. Under review."
+  )
+)
+
+bibentry(
+  bibtype  = "Manual",
+  title    = "bvsOccupancy: Bayesian Variable Selection for Occupancy Models",
+  author   = c(person("Fabian", "Ketwaroo")),
+  year     = "2026",
+  note     = "R package version 0.1.0",
+  url      = "https://github.com/Fabian-Ketwaroo/bvsOccupancy",
+  textVersion = paste(
+    "Ketwaroo, F. (2026). bvsOccupancy: Bayesian Variable Selection for",
+    "Occupancy Models. R package version 0.1.0.",
+    "https://github.com/Fabian-Ketwaroo/bvsOccupancy"
+  )
+)

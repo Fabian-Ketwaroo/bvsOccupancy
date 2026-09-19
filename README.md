@@ -1,0 +1,150 @@
+# bvsOccupancy
+
+Bayesian variable selection for occupancy models, implemented in
+[nimble](https://r-nimble.org).
+
+The package fits single-season, dynamic and multi-species occupancy models in
+which every component of the model — occupancy, detection, persistence and
+colonisation — carries its own vector of binary inclusion indicators. Which
+covariates matter for detection is therefore answered separately from which
+covariates matter for occupancy.
+
+## Installation
+
+```r
+# install.packages("remotes")
+remotes::install_github("Fabian-Ketwaroo/bvsOccupancy")
+```
+
+`nimble` needs a working C++ toolchain, since models are compiled before they
+are run. See the [nimble installation
+guide](https://r-nimble.org/download) if `compileNimble()` fails.
+
+## How the sampler works
+
+Occupancy models are built from Bernoulli likelihoods, and a Bernoulli
+likelihood written in Polya-Gamma augmented form has conditionally Gaussian
+regression coefficients. Two things follow from that.
+
+The coefficients can be drawn in one conjugate block instead of being tuned by
+a random walk. More usefully, they can be integrated out analytically. When the
+sampler proposes adding, deleting or swapping a covariate, it compares the two
+models on their marginal likelihood directly, so there is no reversible-jump
+machinery and no need to match dimensions across the move. This is what keeps
+mixing workable as the number of candidate covariates grows.
+
+Categorical covariates are handled as blocks. A factor enters the design matrix
+as several dummy columns, and selecting those columns independently would make
+the answer depend on which level happens to be the reference. Throughout the
+package, columns are grouped by `indexes_covariates` and a covariate is
+included or excluded as a whole. The prior gives the dummy columns of a group
+an exchangeable correlation of one half, which makes the estimated effects
+invariant to the reference level. The multi-species model does the same at the
+community level: one variance per covariate, shared across its dummy columns.
+
+## A worked example
+
+```r
+library(bvsOccupancy)
+
+## Simulate a single-season data set with three continuous covariates and one
+## three-level factor in each component. Some coefficients are exactly zero.
+sim <- simSSOM(M = 300, J = 5, seed = 1)
+
+fit <- bvsSSOM(
+  y          = sim$y,
+  occ.design = sim$occ.design,
+  det.design = sim$det.design,
+  n.iter     = 15000,
+  n.burnin   = 5000,
+  n.chains   = 2,
+  seed       = 1
+)
+
+inclusionProbs(fit)
+medianModel(fit)
+summary(fit, pars = "^beta_psi")
+```
+
+Design matrices are built from a model formula:
+
+```r
+## Site-level covariates: one row per site
+occ <- bvsDesign(~ elevation + forest + habitat, site.data)
+
+## Visit-level covariates: long format, sites varying fastest
+det <- bvsDesignArray(~ wind + observer, visit.data, dims = c(nsites, nvisits))
+
+occ$indexes_covariates   # tells you which columns form one covariate
+```
+
+## The three models
+
+| Function | Model | Components under selection |
+|---|---|---|
+| `bvsSSOM()` | Single-season, single-species | occupancy, detection |
+| `bvsSDOM()` | Dynamic, single-species | initial occupancy, persistence, colonisation, detection |
+| `bvsMSOM()` | Single-season, multi-species | occupancy and detection, separately for each species |
+
+Each returns an object of class `bvsOccupancy` holding the posterior samples as
+a `coda` object, along with the uncompiled nimble model, the MCMC
+configuration and the compiled MCMC, so the sampler can be inspected or
+extended:
+
+```r
+fit <- bvsSSOM(..., run = FALSE)   # build and configure but do not sample
+fit$conf$printSamplers()
+```
+
+## Reading the output
+
+Report posterior inclusion probabilities, not coefficient estimates alone. When
+a covariate is excluded from the model its coefficient does not enter the
+likelihood and is left at its last sampled value, so the marginal posterior of
+a coefficient is a mixture over models that contain it and models that do not.
+`inclusionProbs()` gives the quantity of interest; `summary()` gives the
+coefficients, which should be read alongside it.
+
+A scale reduction factor of `NA` is expected for indicators that never move,
+such as the intercept, which is always retained.
+
+## Unequal survey effort
+
+Sites may be visited different numbers of times, and in the dynamic model the
+number of visits may vary by season as well. Unsurveyed visits are entered as
+`NA` and are left out of the likelihood. If the missing visits at a site are
+not the last ones, the package reorders that site's visits, and its detection
+covariates with them, before building the model; visits within a site are
+exchangeable given their covariates, so this does not affect inference.
+
+A site-visit that was surveyed but where the species was not seen is a `0`, not
+an `NA`. In the multi-species model this matters: all species are assumed to be
+recorded on the same visits, so the pattern of `NA` must be identical across
+species.
+
+## Citation
+
+If you use this package, please cite the accompanying paper. Run
+`citation("bvsOccupancy")` for the current entry.
+
+## References
+
+Polson, N. G., Scott, J. G. and Windle, J. (2013) Bayesian inference for
+logistic models using Polya-Gamma latent variables. *Journal of the American
+Statistical Association* **108**, 1339–1349.
+
+MacKenzie, D. I., Nichols, J. D., Lachman, G. B., Droege, S., Royle, J. A. and
+Langtimm, C. A. (2002) Estimating site occupancy rates when detection
+probabilities are less than one. *Ecology* **83**, 2248–2255.
+
+MacKenzie, D. I., Nichols, J. D., Hines, J. E., Knutson, M. G. and Franklin,
+A. B. (2003) Estimating site occupancy, colonization, and local extinction when
+a species is detected imperfectly. *Ecology* **84**, 2200–2207.
+
+Dorazio, R. M. and Royle, J. A. (2005) Estimating size and composition of
+biological communities by modeling the occurrence of species. *Journal of the
+American Statistical Association* **100**, 389–398.
+
+## License
+
+GPL-3.
