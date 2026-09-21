@@ -1,10 +1,3 @@
----
-
-editor_options: 
-  markdown: 
-    wrap: 72
----
-
 # bvsOccupancy
 
 Bayesian variable selection for occupancy models, implemented in [nimble](https://r-nimble.org).

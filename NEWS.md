@@ -51,3 +51,18 @@ are defensive checks in the R layer.
 * `simSDOM()` compared `dim(Jindex)` against a double vector, so the
   comparison was never true and every valid `Jindex` was rejected. Simulating
   unequal numbers of visits across sites and seasons now works.
+
+* `indexes_covariates` is now stored as a double vector rather than an integer
+  one. The nimbleFunctions that consume it (`dLgamma`, `compute_predictor` and
+  `build_block_cov`) declare the argument as `double(1)`, so an integer vector
+  compiled to `NimArr<1, int>` and the generated C++ failed to match the
+  double signature. The symptom was a model that built and configured without
+  complaint in R and then failed at `compileNimble()` with "no matching
+  function for call to rcFun_...". The sampler setup code coerces the vector
+  as well, so a hand-built `control` list cannot reintroduce the mismatch.
+
+* `gamma_sampler_psi()` now stops with a clear message when
+  `indexes_covariates` is absent from `control`. It previously fell through to
+  `print()`, which returned a character vector and pushed the failure into the
+  C++ stage.
+

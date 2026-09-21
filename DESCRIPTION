@@ -3,7 +3,7 @@ Type: Package
 Title: Bayesian Variable Selection for Occupancy Models
 Version: 0.1.0
 Authors@R: c(
-    person("Fabian", "Ketwaroo", email = "fabianketwaroo@gmail.com",
+    person("Fabian", "Ketwaroo", email = "fabian.ketwaroo@example.com",
            role = c("aut", "cre")))
 Description: Fits single-season, dynamic and multi-species occupancy models
     with Bayesian variable selection on every component of the model.
@@ -31,5 +31,5 @@ Suggests:
 URL: https://github.com/Fabian-Ketwaroo/bvsOccupancy
 BugReports: https://github.com/Fabian-Ketwaroo/bvsOccupancy/issues
 VignetteBuilder: knitr
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.1
 Config/testthat/edition: 3
