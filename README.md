@@ -60,7 +60,7 @@ occ$indexes_covariates   # tells you which columns form one covariate
 ## The three models
 
 | Function | Model | Components under selection |
-|------------------------|------------------------|------------------------|
+|----|----|----|
 | `bvsSSOM()` | Single-season, single-species | occupancy, detection |
 | `bvsSDOM()` | Dynamic, single-species | initial occupancy, persistence, colonisation, detection |
 | `bvsMSOM()` | Single-season, multi-species | occupancy and detection, separately for each species |
