@@ -38,7 +38,7 @@ gamma_sampler_phi <- nimbleFunction(
     ncov <-  if(!is.null(control$ncov)) control$ncov else 7
     d_bar <- ifelse(ncov <= 2, 1, 2)
     d_bar <- ifelse(d_bar <= ncov, d_bar, 2)
-    indexes_covariates <- if(!is.null(control$indexes_covariates)) control$indexes_covariates else 1:ncov
+    indexes_covariates <- as.numeric(if(!is.null(control$indexes_covariates)) control$indexes_covariates else 1:ncov)
     ## `ynodes` must be aligned element-for-element with `znodes`. Model
     ## declaration order need not match `expandNodeNames()` order, so the
     ## fitting functions supply the nodes explicitly; falling back on the
@@ -230,7 +230,7 @@ PG_sampler_phi <- nimbleFunction(
   setup = function(model, mvSaved, target, control) {
     
     X_p <- control$designMatrix
-    indexes_covariates <- if(!is.null(control$indexes_covariates)) control$indexes_covariates else 1:m
+    indexes_covariates <- as.numeric(if(!is.null(control$indexes_covariates)) control$indexes_covariates else 1:m)
     gamma_nodes <- model$expandNodeNames(control$Gamma, returnScalarComponents = TRUE) 
     beta_nodes <- model$expandNodeNames(control$fixedEffects, returnScalarComponents = TRUE) 
     znodes <- model$expandNodeNames(control$znodes, returnScalarComponents = TRUE)
@@ -321,7 +321,7 @@ beta_sampler_phi <- nimbleFunction(
     
     X_p <- control$designMatrix
     S <- dim(X_p)[1]; M <- dim(X_p)[2]#; Trep <- dim(X_p)[3]
-    indexes_covariates <- if(!is.null(control$indexes_covariates)) control$indexes_covariates else 1:M
+    indexes_covariates <- as.numeric(if(!is.null(control$indexes_covariates)) control$indexes_covariates else 1:M)
     targetAsScalar <- model$expandNodeNames(target, returnScalarComponents = TRUE)
     ## `ynodes` must be aligned element-for-element with `znodes`. Model
     ## declaration order need not match `expandNodeNames()` order, so the

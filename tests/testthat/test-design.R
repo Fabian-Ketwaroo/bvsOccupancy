@@ -90,3 +90,27 @@ test_that("malformed covariate groupings are rejected", {
   expect_error(as.bvsDesign(X, c(1L, 1L, 2L)), "only the intercept")
   expect_error(as.bvsDesign(X, c(1L, 2L)), "length 2")
 })
+
+test_that("indexes_covariates is stored as double, not integer", {
+  ## The nimbleFunctions that consume this vector (dLgamma, compute_predictor,
+  ## build_block_cov) declare it as double(1). An integer vector compiles to
+  ## NimArr<1,int>, the generated C++ then fails to match the double signature,
+  ## and the model builds fine in R but dies at compileNimble(). Keep it double.
+  d <- bvsDesign(~ x1 + f, data.frame(x1 = rnorm(20),
+                                      f = factor(rep(c("a", "b", "c"), length.out = 20))))
+  expect_type(d$indexes_covariates, "double")
+  expect_false(is.integer(d$indexes_covariates))
+  expect_equal(d$indexes_covariates, c(1, 2, 3, 3))
+
+  a <- bvsDesignArray(~ x1, data.frame(x1 = rnorm(20 * 3)), dims = c(20, 3))
+  expect_type(a$indexes_covariates, "double")
+
+  ## also when the user hands in integers directly
+  X <- cbind(1, matrix(rnorm(40), 20, 2))
+  b <- as.bvsDesign(X, indexes_covariates = c(1L, 2L, 3L))
+  expect_type(b$indexes_covariates, "double")
+
+  ## group counts stay integer
+  expect_type(d$ncov, "integer")
+  expect_type(b$ncov, "integer")
+})

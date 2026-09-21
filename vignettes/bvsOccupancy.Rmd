@@ -14,36 +14,21 @@ library(bvsOccupancy)
 
 ## What the package does
 
-Occupancy models almost always come with more candidate covariates than the
-data can support, and the usual response is to fit a handful of models and
-compare them with an information criterion. `bvsOccupancy` instead puts a
-binary inclusion indicator on every covariate and samples the model and the
-parameters jointly, so the output is a posterior distribution over models
-rather than a single selected one.
+Occupancy models almost always come with more candidate covariates than the data can support, and the usual response is to fit a handful of models and compare them with an information criterion. `bvsOccupancy` instead puts a binary inclusion indicator on every covariate and samples the model and the parameters jointly, so the output is a posterior distribution over models rather than a single selected one.
 
 Three model classes are covered, one function each:
 
 | Function | Model | Components with variable selection |
-|---|---|---|
+|----|----|----|
 | `bvsSSOM()` | single-season, single-species | occupancy, detection |
 | `bvsSDOM()` | dynamic (multi-season), single-species | initial occupancy, persistence, colonisation, detection |
 | `bvsMSOM()` | multi-species community | occupancy, detection, per species |
 
-All three share the same machinery. Polya-Gamma data augmentation makes the
-regression coefficients conditionally Gaussian, so each block of coefficients
-is drawn in one conjugate step. Because the coefficients are conjugate they can
-also be integrated out analytically, which is what lets the inclusion vector be
-updated with add, delete and swap moves whose acceptance probability depends
-only on the marginal likelihood. Categorical covariates are handled as a block:
-all dummy columns of a factor enter or leave together, so inference does not
-depend on which level happens to be the reference.
+All three share the same machinery. Polya-Gamma data augmentation makes the regression coefficients conditionally Gaussian, so each block of coefficients is drawn in one conjugate step. Because the coefficients are conjugate they can also be integrated out analytically, which is what lets the inclusion vector be updated with add, delete and swap moves whose acceptance probability depends only on the marginal likelihood. Categorical covariates are handled as a block: all dummy columns of a factor enter or leave together, so inference does not depend on which level happens to be the reference.
 
 ## Designs
 
-Every component of a model needs a design object built by `bvsDesign()` for
-site-level covariates or `bvsDesignArray()` for covariates that also vary over
-visits or seasons. Both take a formula and a data frame, build the model matrix
-in the usual R way, and record which columns belong to which covariate.
+Every component of a model needs a design object built by `bvsDesign()` for site-level covariates or `bvsDesignArray()` for covariates that also vary over visits or seasons. Both take a formula and a data frame, build the model matrix in the usual R way, and record which columns belong to which covariate.
 
 ```{r design, eval = FALSE}
 site <- data.frame(
@@ -56,12 +41,9 @@ occ <- bvsDesign(~ elev + forest + habitat, site)
 occ
 ```
 
-The printed object shows the covariate groups. `habitat` occupies two columns
-but counts as one candidate covariate, and the two columns will always be
-selected or dropped together.
+The printed object shows the covariate groups. `habitat` occupies two columns but counts as one candidate covariate, and the two columns will always be selected or dropped together.
 
-Detection covariates vary by visit, so they are supplied as a long data frame
-in site-major order, together with the dimensions of the array to build:
+Detection covariates vary by visit, so they are supplied as a long data frame in site-major order, together with the dimensions of the array to build:
 
 ```{r design-array, eval = FALSE}
 visit <- data.frame(
@@ -71,37 +53,24 @@ visit <- data.frame(
 det <- bvsDesignArray(~ date + obs, visit, dims = c(200, 5))
 ```
 
-The result is a sites by columns by visits array. For a dynamic model the
-detection design has a fourth dimension for seasons, `dims = c(M, J, T)`, while
-persistence and colonisation designs use `dims = c(M, T - 1)` because they
-describe transitions rather than seasons.
+The result is a sites by columns by visits array. For a dynamic model the detection design has a fourth dimension for seasons, `dims = c(M, J, T)`, while persistence and colonisation designs use `dims = c(M, T - 1)` because they describe transitions rather than seasons.
 
-Interactions and transformations work exactly as they do in `lm()`. A term such
-as `elev:habitat` becomes its own covariate group and is selected as a block.
+Interactions and transformations work exactly as they do in `lm()`. A term such as `elev:habitat` becomes its own covariate group and is selected as a block.
 
 ## Priors
 
-`bvsPrior()` builds the normal prior on the coefficients. The intercept gets a
-diffuse variance of its own; the remaining coefficients get a block diagonal
-covariance in which a continuous covariate contributes a single variance and
-the dummy columns of a factor share an exchangeable block with correlation one
-half. That block structure is what makes the fitted effects invariant to the
-reference level.
+`bvsPrior()` builds the normal prior on the coefficients. The intercept gets a diffuse variance of its own; the remaining coefficients get a block diagonal covariance in which a continuous covariate contributes a single variance and the dummy columns of a factor share an exchangeable block with correlation one half. That block structure is what makes the fitted effects invariant to the reference level.
 
 ```{r prior, eval = FALSE}
 p <- bvsPrior(occ, phi.beta = 1 / 4)
 round(p$B, 3)
 ```
 
-Lowering `phi.beta` shrinks the coefficients harder and favours smaller models.
-It is worth refitting at a couple of values to see how sensitive the inclusion
-probabilities are, since in variable selection the prior scale on the
-coefficients plays the role that a penalty parameter plays elsewhere.
+Lowering `phi.beta` shrinks the coefficients harder and favours smaller models. It is worth refitting at a couple of values to see how sensitive the inclusion probabilities are, since in variable selection the prior scale on the coefficients plays the role that a penalty parameter plays elsewhere.
 
 ## A single-season model
 
-`simSSOM()` generates data from a known sparse model, which makes it easy to
-see whether selection is doing what it should.
+`simSSOM()` generates data from a known sparse model, which makes it easy to see whether selection is doing what it should.
 
 ```{r ssom, eval = FALSE}
 sim <- simSSOM(M = 400, J = 5, n.cont = 3, n.cat = 1, n.levels = 3, seed = 1)
@@ -119,21 +88,16 @@ fit <- bvsSSOM(
 fit
 ```
 
-`y` is a sites by visits matrix of zeros and ones, with `NA` for visits that
-were not made. Sites may have different numbers of visits; unsurveyed visits
-are moved to the end of each row internally, together with their covariates.
+`y` is a sites by visits matrix of zeros and ones, with `NA` for visits that were not made. Sites may have different numbers of visits; unsurveyed visits are moved to the end of each row internally, together with their covariates.
 
-The quantity to report is the posterior inclusion probability of each
-covariate:
+The quantity to report is the posterior inclusion probability of each covariate:
 
 ```{r ip, eval = FALSE}
 inclusionProbs(fit)
 medianModel(fit)
 ```
 
-The intercept is always in the model, so its probability is one by
-construction. `medianModel()` lists the covariates above a threshold, 0.5 by
-default, which is the median probability model.
+The intercept is always in the model, so its probability is one by construction. `medianModel()` lists the covariates above a threshold, 0.5 by default, which is the median probability model.
 
 Coefficient summaries come from `summary()`:
 
@@ -141,12 +105,7 @@ Coefficient summaries come from `summary()`:
 summary(fit, pars = "^beta_psi")
 ```
 
-These need care. Under variable selection the posterior of a coefficient is a
-mixture over models that include the covariate and models that do not, and
-while a covariate is excluded its coefficient does not enter the likelihood.
-A coefficient summary is therefore only interpretable alongside its inclusion
-probability. If you want the effect size conditional on inclusion, restrict to
-the draws in which the indicator is one:
+These need care. Under variable selection the posterior of a coefficient is a mixture over models that include the covariate and models that do not, and while a covariate is excluded its coefficient does not enter the likelihood. A coefficient summary is therefore only interpretable alongside its inclusion probability. If you want the effect size conditional on inclusion, restrict to the draws in which the indicator is one:
 
 ```{r conditional, eval = FALSE}
 draws <- as.matrix(as.mcmc.list(fit))
@@ -154,9 +113,7 @@ keep  <- draws[, "gamma_psi[2]"] == 1
 quantile(draws[keep, "beta_psi[2]"], c(0.025, 0.5, 0.975))
 ```
 
-Convergence should be checked as usual, with the caveat that the scale
-reduction factor of an indicator that never moves is `NA`, which is expected
-for the intercept.
+Convergence should be checked as usual, with the caveat that the scale reduction factor of an indicator that never moves is `NA`, which is expected for the intercept.
 
 ```{r coda, eval = FALSE}
 library(coda)
@@ -165,10 +122,7 @@ gelman.diag(as.mcmc.list(fit)[, c("beta_psi[2]", "beta_p[2]")])
 
 ## A dynamic model
 
-For multi-season data, `y` is a sites by visits by seasons array and four
-designs are supplied. Persistence and colonisation are defined on transitions,
-so their designs cover `T - 1` seasons. If a design with `T` seasons is passed
-the last season is dropped with a message.
+For multi-season data, `y` is a sites by visits by seasons array and four designs are supplied. Persistence and colonisation are defined on transitions, so their designs cover `T - 1` seasons. If a design with `T` seasons is passed the last season is dropped with a message.
 
 ```{r sdom, eval = FALSE}
 sim <- simSDOM(M = 200, J = 5, n.seasons = 10, seed = 1)
@@ -188,22 +142,13 @@ fit <- bvsSDOM(
 inclusionProbs(fit)
 ```
 
-Selection runs separately on all four components, so a covariate can drive
-colonisation without appearing in persistence. If the same covariates are
-candidates for both, `col.design` defaults to `per.design` and can be omitted.
+Selection runs separately on all four components, so a covariate can drive colonisation without appearing in persistence. If the same covariates are candidates for both, `col.design` defaults to `per.design` and can be omitted.
 
-Persistence and colonisation are the parameters that are usually weakly
-identified in dynamic models, especially with few seasons or low detection. It
-is normal for their inclusion probabilities to sit near the prior when the data
-carry little information about transitions, and that is a useful finding rather
-than a failure.
+Persistence and colonisation are the parameters that are usually weakly identified in dynamic models, especially with few seasons or low detection. It is normal for their inclusion probabilities to sit near the prior when the data carry little information about transitions, and that is a useful finding rather than a failure.
 
 ## A multi-species model
 
-In a community model, `y` is a species by sites by visits array. Species share
-community-level means and variances, and selection is species-specific: each
-species has its own inclusion vector, drawn towards the community pattern
-through the hierarchical prior.
+In a community model, `y` is a species by sites by visits array. Species share community-level means and variances, and selection is species-specific: each species has its own inclusion vector, drawn towards the community pattern through the hierarchical prior.
 
 ```{r msom, eval = FALSE}
 sim <- simMSOM(N = 20, S = 250, nvisits = 5, seed = 1)
@@ -223,35 +168,19 @@ round(ip, 2)
 colMeans(ip)                     # how community-wide each covariate is
 ```
 
-`tau.occ` and `tau.det` set the inverse gamma priors on the community
-variances, with separate shape and rate for the intercept and for the
-covariates. The defaults are moderately informative, which is deliberate: the
-community variance is what ties species together, and a very diffuse prior on
-it lets species drift apart and weakens selection.
+`tau.occ` and `tau.det` set the inverse gamma priors on the community variances, with separate shape and rate for the intercept and for the covariates. The defaults are moderately informative, which is deliberate: the community variance is what ties species together, and a very diffuse prior on it lets species drift apart and weakens selection.
 
-The community covariance uses the same block structure as `bvsPrior()`, with
-one variance per covariate group and exchangeable correlation within the dummy
-columns of a factor.
+The community covariance uses the same block structure as `bvsPrior()`, with one variance per covariate group and exchangeable correlation within the dummy columns of a factor.
 
 ## Practical notes
 
-**Compilation.** The model is compiled by nimble the first time it is fitted,
-which takes a few minutes and produces C++ compiler output. That cost is paid
-once per model structure, not per iteration.
+**Compilation.** The model is compiled by nimble the first time it is fitted, which takes a few minutes and produces C++ compiler output. That cost is paid once per model structure, not per iteration.
 
-**Run length.** Model indicators mix more slowly than continuous parameters,
-because the chain has to move between models rather than within one. The
-defaults are a starting point; if inclusion probabilities differ noticeably
-between chains, run longer rather than reaching for a different threshold.
+**Run length.** Model indicators mix more slowly than continuous parameters, because the chain has to move between models rather than within one. The defaults are a starting point; if inclusion probabilities differ noticeably between chains, run longer rather than reaching for a different threshold.
 
-**Standardising covariates.** Continuous covariates should be centred and
-scaled before they go into a design. The prior covariance is common across
-covariates, so unstandardised covariates on wildly different scales receive
-effectively different amounts of shrinkage.
+**Standardising covariates.** Continuous covariates should be centred and scaled before they go into a design. The prior covariance is common across covariates, so unstandardised covariates on wildly different scales receive effectively different amounts of shrinkage.
 
-**Building on the output.** Setting `run = FALSE` returns the nimble model,
-the MCMC configuration and the uncompiled MCMC, so further samplers or monitors
-can be added before anything is compiled.
+**Building on the output.** Setting `run = FALSE` returns the nimble model, the MCMC configuration and the uncompiled MCMC, so further samplers or monitors can be added before anything is compiled.
 
 ```{r extend, eval = FALSE}
 fit <- bvsSSOM(sim$y, sim$occ.design, sim$det.design, run = FALSE)
@@ -260,5 +189,4 @@ fit$conf$addMonitors("z")
 
 ## Reference
 
-The samplers implement the approach described in the accompanying manuscript.
-See `citation("bvsOccupancy")` for the current reference.
+The samplers implement the approach described in the accompanying manuscript. See `citation("bvsOccupancy")` for the current reference.

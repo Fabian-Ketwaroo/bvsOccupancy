@@ -203,7 +203,7 @@ Comm_multivariate_mean_sampler <- nimbleFunction(
     gamma.nodes <- model$expandNodeNames(control$gamma.species, returnScalarComponents = TRUE)
     sig2.nodes  <- model$expandNodeNames(control$sig2.comm)
     
-    indexes_covariates <- control$indexes_covariates
+    indexes_covariates <- as.numeric(control$indexes_covariates)
     S <- length(beta.nodes) / D_beta
     
     n_groups <- max(indexes_covariates)

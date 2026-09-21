@@ -40,7 +40,7 @@ gamma_sampler_p <- nimbleFunction(
     ncov <-  if(!is.null(control$ncov)) control$ncov else 7
     d_bar <- ifelse(ncov <= 2, 1, 2)
     d_bar <- ifelse(d_bar <= ncov, d_bar, 2)
-    indexes_covariates <- if(!is.null(control$indexes_covariates)) control$indexes_covariates else 1:ncov
+    indexes_covariates <- as.numeric(if(!is.null(control$indexes_covariates)) control$indexes_covariates else 1:ncov)
     #ynodes <- model$getDependencies(target, stochOnly = TRUE, self = FALSE)
     ynodes <- model$expandNodeNames(control$ynodes, returnScalarComponents = TRUE) # excludes nodes with NA's
     PG_nodes <- model$expandNodeNames(control$PG, returnScalarComponents = TRUE)
@@ -230,7 +230,7 @@ PG_sampler_p <- nimbleFunction(
   setup = function(model, mvSaved, target, control) {
     X_p       <- control$designMatrix        # k x numVars  (X_rmNA)
     valid_indices <- as.integer(control$valid_indices)   # setup
-    indexes_covariates <- control$indexes_covariates
+    indexes_covariates <- as.numeric(control$indexes_covariates)
     gamma_nodes <- model$expandNodeNames(control$Gamma,        returnScalarComponents = TRUE)
     beta_nodes  <- model$expandNodeNames(control$fixedEffects, returnScalarComponents = TRUE)
     znodes      <- model$expandNodeNames(control$znodes,       returnScalarComponents = TRUE)
@@ -300,7 +300,7 @@ beta_sampler_p <- nimbleFunction(
     
     X_p <- control$designMatrix
     S <- dim(X_p)[1]; M <- dim(X_p)[2]#; Trep <- dim(X_p)[3]
-    indexes_covariates <- if(!is.null(control$indexes_covariates)) control$indexes_covariates else 1:M
+    indexes_covariates <- as.numeric(if(!is.null(control$indexes_covariates)) control$indexes_covariates else 1:M)
     targetAsScalar <- model$expandNodeNames(target, returnScalarComponents = TRUE)
     #ynodes <- model$getDependencies(target, stochOnly = TRUE, self = FALSE)
     ynodes <- model$expandNodeNames(control$ynodes, returnScalarComponents = TRUE)

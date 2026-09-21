@@ -36,7 +36,10 @@ gamma_sampler_psi <- nimbleFunction(
     ncov <-  if(!is.null(control$ncov)) control$ncov else 7
     d_bar <- ifelse(ncov <= 2, 1, 2)#2#ncov  
     d_bar <- ifelse(d_bar <= ncov, d_bar, 2)
-    indexes_covariates <- if(!is.null(control$indexes_covariates)) control$indexes_covariates else print("index of covariates need to be specified")
+    if (is.null(control$indexes_covariates)) {
+      stop("`indexes_covariates` must be supplied in `control` for gamma_sampler_psi.", call. = FALSE)
+    }
+    indexes_covariates <- as.numeric(control$indexes_covariates)
     znodes <- model$getDependencies(target, stochOnly = TRUE, self = FALSE)
     PG_nodes <- model$expandNodeNames(control$PG, returnScalarComponents = TRUE)
     fixedeffects <- control$fixedEffects
@@ -209,7 +212,7 @@ PG_sampler_psi <- nimbleFunction(
     X <- control$designMatrix
     nsize = dim(X)[1] # assume that all observations have the same number of samples
     m <- dim(X)[2]
-    indexes_covariates <- if(!is.null(control$indexes_covariates)) control$indexes_covariates else 1:m
+    indexes_covariates <- as.numeric(if(!is.null(control$indexes_covariates)) control$indexes_covariates else 1:m)
     gamma_nodes <- model$expandNodeNames(control$Gamma, returnScalarComponents = TRUE) 
     beta_nodes <- model$expandNodeNames(control$fixedEffects, returnScalarComponents = TRUE) 
   },
@@ -281,7 +284,7 @@ beta_sampler_psi <- nimbleFunction(
     #calcNodes <- model$getDependencies(target) # all the betas
     X <- control$designMatrix
     N <- dim(X)[1]; M <- dim(X)[2]
-    indexes_covariates <- if(!is.null(control$indexes_covariates)) control$indexes_covariates else 1:M
+    indexes_covariates <- as.numeric(if(!is.null(control$indexes_covariates)) control$indexes_covariates else 1:M)
     targetAsScalar <- model$expandNodeNames(target, returnScalarComponents = TRUE)
     znodes <- model$getDependencies(target, stochOnly = TRUE, self = FALSE)
     

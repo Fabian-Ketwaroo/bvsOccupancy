@@ -145,7 +145,7 @@ as.bvsDesign <- function(X, indexes_covariates, labels = NULL) {
   }
   V <- d[2L]
   ic <- .checkIndexes(indexes_covariates, V)
-  ncov <- max(ic) - 1L
+  ncov <- as.integer(max(ic)) - 1L
   if (is.null(labels)) {
     labels <- c("(Intercept)", paste0("x", seq_len(ncov)))
   }
@@ -281,7 +281,7 @@ print.bvsDesign <- function(x, ...) {
   ic <- .checkIndexes(ic, ncol(X))
   labels <- c("(Intercept)", attr(tt, "term.labels"))
   structure(
-    list(X = X, indexes_covariates = ic, ncov = max(ic) - 1L, numVars = ncol(X),
+    list(X = X, indexes_covariates = ic, ncov = as.integer(max(ic)) - 1L, numVars = ncol(X),
          labels = labels, dims = dim(X), terms = tt, call = call),
     class = "bvsDesign"
   )
@@ -307,7 +307,13 @@ print.bvsDesign <- function(x, ...) {
   if (sum(ic == 1L) != 1L) {
     stop("group 1 must contain only the intercept column.", call. = FALSE)
   }
-  ic
+  ## Returned as double, not integer, on purpose. This vector is handed to
+  ## nimbleFunctions whose run signatures declare `indexes_covariates` (and
+  ## `group_id`) as double(1). An integer vector compiles to NimArr<1,int> and
+  ## the generated C++ then fails to match the double signature, so the model
+  ## builds in R and only breaks at compileNimble(). Validation above is done
+  ## on the integer copy; only the storage type changes here.
+  as.numeric(ic)
 }
 
 ## Coerce a user-supplied design and check its shape.
