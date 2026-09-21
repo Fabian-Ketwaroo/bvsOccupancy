@@ -3,7 +3,7 @@ Type: Package
 Title: Bayesian Variable Selection for Occupancy Models
 Version: 0.1.0
 Authors@R: c(
-    person("Fabian", "Ketwaroo", email = "fabian.ketwaroo@example.com",
+    person("Fabian", "Ketwaroo", email = "fabianketwaroo@gmail.com",
            role = c("aut", "cre")))
 Description: Fits single-season, dynamic and multi-species occupancy models
     with Bayesian variable selection on every component of the model.
