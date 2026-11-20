@@ -4,7 +4,7 @@
 \alias{aterm}
 \title{Coefficient of the alternating series used in the Polya-Gamma sampler}
 \usage{
-aterm(n = integer(), x = double(0), t = double(0))
+aterm(n, x, t)
 }
 \arguments{
 \item{n, x, t, mu, z}{Arguments of the underlying algorithm.}

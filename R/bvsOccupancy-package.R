@@ -31,13 +31,17 @@
 #'     persistence and colonisation.}
 #'   \item{\code{\link{bvsMSOM}}}{Multi-species occupancy with community-level
 #'     means and variances.}
+#'   \item{\code{\link{bvsMSDOM}}}{Multi-species dynamic occupancy: the
+#'     dynamic structure of \code{bvsSDOM} with the community structure of
+#'     \code{bvsMSOM}.}
 #'   \item{\code{\link{bvsDesign}}, \code{\link{bvsDesignArray}}}{Build design
 #'     matrices and the covariate grouping from a model formula.}
 #'   \item{\code{\link{bvsPrior}}}{Construct the prior on the regression
 #'     coefficients.}
 #'   \item{\code{\link{inclusionProbs}}}{Posterior inclusion probabilities.}
 #'   \item{\code{\link{simSSOM}}, \code{\link{simSDOM}},
-#'     \code{\link{simMSOM}}}{Simulate data from each model.}
+#'     \code{\link{simMSOM}}, \code{\link{simMSDOM}}}{Simulate data from
+#'     each model.}
 #' }
 #'
 #' @references

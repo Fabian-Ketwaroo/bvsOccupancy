@@ -4,7 +4,7 @@
 \alias{mvrnormQuick}
 \title{Fast multivariate normal draw from a Cholesky factor}
 \usage{
-mvrnormQuick(mu = double(1), cholsigma = double(2))
+mvrnormQuick(mu, cholsigma)
 }
 \arguments{
 \item{mu}{Mean vector.}

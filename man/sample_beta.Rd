@@ -4,13 +4,7 @@
 \alias{sample_beta}
 \title{Conjugate update of the regression coefficients}
 \usage{
-sample_beta(
-  X = double(2),
-  B = double(2),
-  b = double(1),
-  Omega = double(1),
-  k = double(1)
-)
+sample_beta(X, B, b, Omega, k)
 }
 \arguments{
 \item{X}{Design matrix restricted to the active columns and to the rows that

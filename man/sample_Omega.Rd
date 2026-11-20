@@ -4,7 +4,7 @@
 \alias{sample_Omega}
 \title{Vectorised Polya-Gamma update}
 \usage{
-sample_Omega(X = double(2), beta = double(1), n = double(1))
+sample_Omega(X, beta, n)
 }
 \arguments{
 \item{X}{Design matrix restricted to the active columns.}

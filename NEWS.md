@@ -1,3 +1,17 @@
+# bvsOccupancy 0.2.0
+
+## New features
+
+* `bvsMSDOM()` fits a multi-species dynamic occupancy model: several species at
+  the same sites over several seasons, with variable selection on initial
+  occupancy, persistence, colonisation and detection, separately for every
+  species, and community-level means and variances tying the species together.
+  It is the combination of `bvsSDOM()` and `bvsMSOM()` and uses the same
+  samplers; nothing in the method is new.
+
+* `simMSDOM()` simulates from that model, with optional unequal replication
+  across site-seasons.
+
 # bvsOccupancy 0.1.0
 
 First release, accompanying the manuscript.
@@ -65,4 +79,3 @@ are defensive checks in the R layer.
   `indexes_covariates` is absent from `control`. It previously fell through to
   `print()`, which returned a character vector and pushed the failure into the
   C++ stage.
-

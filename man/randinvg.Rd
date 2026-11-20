@@ -4,7 +4,7 @@
 \alias{randinvg}
 \title{Draw from an inverse Gaussian distribution}
 \usage{
-randinvg(mu = double(0))
+randinvg(mu)
 }
 \arguments{
 \item{n, x, t, mu, z}{Arguments of the underlying algorithm.}

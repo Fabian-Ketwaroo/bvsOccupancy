@@ -4,7 +4,7 @@
 \alias{samplepg}
 \title{Exact draw from a Polya-Gamma PG(1, z) distribution}
 \usage{
-samplepg(z = double(0))
+samplepg(z)
 }
 \arguments{
 \item{z}{Tilting parameter, typically the current linear predictor.}

@@ -4,7 +4,7 @@
 \alias{build_block_cov}
 \title{Block community covariance matrix}
 \usage{
-build_block_cov(tau = double(1), group_id = double(1), numVars = double(0))
+build_block_cov(tau, group_id, numVars)
 }
 \arguments{
 \item{tau}{Vector of group-level variances, one per covariate group.}

@@ -5,9 +5,9 @@
 \alias{rPG}
 \title{Placeholder density for Polya-Gamma latent variables}
 \usage{
-dPG(x = double(1), log = integer(0, default = 1))
+dPG(x, log = 1)
 
-rPG(n = integer(0))
+rPG(n)
 }
 \arguments{
 \item{x}{Vector of latent variables.}

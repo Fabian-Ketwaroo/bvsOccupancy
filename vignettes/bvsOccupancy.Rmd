@@ -21,7 +21,7 @@ binary inclusion indicator on every covariate and samples the model and the
 parameters jointly, so the output is a posterior distribution over models
 rather than a single selected one.
 
-Three model classes are covered, one function each:
+Four model classes are covered, one function each:
 
 | Function | Model | Components with variable selection |
 |---|---|---|
@@ -232,6 +232,40 @@ it lets species drift apart and weakens selection.
 The community covariance uses the same block structure as `bvsPrior()`, with
 one variance per covariate group and exchangeable correlation within the dummy
 columns of a factor.
+
+## A multi-species dynamic model
+
+`bvsMSDOM()` is the two extensions at once: the seasons of `bvsSDOM()` and the
+community of `bvsMSOM()`. `y` is a species by sites by visits by seasons array,
+and four designs are supplied, with persistence and colonisation defined on the
+`T - 1` transitions as before. Every species gets its own inclusion vector in
+all four components.
+
+```{r msdom, eval = FALSE}
+sim <- simMSDOM(N = 15, M = 200, J = 3, n.seasons = 5, seed = 1)
+
+fit <- bvsMSDOM(
+  y          = sim$y,
+  occ.design = sim$occ.design,
+  per.design = sim$per.design,
+  col.design = sim$col.design,
+  det.design = sim$det.design,
+  n.iter     = 25000,
+  n.burnin   = 10000,
+  n.chains   = 2,
+  seed       = 1
+)
+
+ip <- inclusionProbs(fit)      # one species x covariate matrix per component
+round(colMeans(ip$phi), 2)     # how community-wide each persistence covariate is
+```
+
+Two things are worth knowing before running this on real data. The pattern of
+missing visits must be the same for every species, because a visit either
+happened or it did not: a site-visit that was surveyed but where a species went
+undetected is a zero, not `NA`. And the model is large, since the number of
+nodes grows as species times sites times seasons. Fit a handful of species
+first to confirm the designs are right, then scale up.
 
 ## Practical notes
 

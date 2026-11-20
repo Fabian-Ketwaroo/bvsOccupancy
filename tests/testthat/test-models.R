@@ -166,3 +166,150 @@ test_that("a long SSOM run recovers the generating model", {
                    function(b) any(abs(b) > 0))
   expect_equal(unname(ip > 0.5), unname(as.logical(active)))
 })
+
+## ---------------------------------------------------------------------------
+## Multi-species dynamic model.
+## ---------------------------------------------------------------------------
+
+test_that("simMSDOM returns the shape bvsMSDOM expects", {
+  sim <- simMSDOM(N = 4, M = 40, J = 3, n.seasons = 3,
+                  n.cont = 2, n.cat = 1, seed = 30)
+  expect_equal(dim(sim$y), c(4L, 40L, 3L, 3L))
+  expect_equal(dim(sim$z), c(4L, 40L, 3L))
+  expect_true(all(sim$y %in% c(0L, 1L)))
+
+  ## transitions, not seasons
+  expect_equal(dim(sim$per.design$X)[3L], 2L)
+  expect_equal(dim(sim$col.design$X)[3L], 2L)
+  expect_equal(dim(sim$det.design$X)[c(1L, 3L, 4L)], c(40L, 3L, 3L))
+
+  expect_equal(dim(sim$beta.z), c(4L, ncol(sim$occ.design$X)))
+  expect_equal(dim(sim$beta.phi), c(4L, dim(sim$per.design$X)[2L]))
+  expect_equal(length(sim$mu.eta), max(sim$col.design$indexes_covariates))
+})
+
+test_that("simMSDOM honours unequal replication across site-seasons", {
+  Ji <- matrix(2L, 20, 3)
+  Ji[1:5, 2] <- 1L
+  sim <- simMSDOM(N = 3, M = 20, J = 3, n.seasons = 3, seed = 31, Jindex = Ji)
+  expect_true(all(is.na(sim$y[, , 3L, ])))
+  expect_true(all(is.na(sim$y[, 1:5, 2L, 2L])))
+  ## missingness is identical across species
+  for (k in 2:3) expect_identical(is.na(sim$y[k, , , ]), is.na(sim$y[1L, , , ]))
+})
+
+test_that("bvsMSDOM rejects malformed input before touching nimble", {
+  sim <- simMSDOM(N = 3, M = 20, J = 2, n.seasons = 3, seed = 32)
+
+  expect_error(
+    bvsMSDOM(sim$y[1, , , , drop = FALSE], sim$occ.design, sim$per.design,
+             sim$col.design, sim$det.design, run = FALSE),
+    "two species"
+  )
+  expect_error(
+    bvsMSDOM(sim$y[, , , 1, drop = FALSE], sim$occ.design, sim$per.design,
+             sim$col.design, sim$det.design, run = FALSE),
+    "two seasons"
+  )
+  expect_error(
+    bvsMSDOM(sim$y[, 1:10, , , drop = FALSE], sim$occ.design, sim$per.design,
+             sim$col.design, sim$det.design, run = FALSE),
+    "sites"
+  )
+  expect_error(
+    bvsMSDOM(sim$y, sim$occ.design, sim$occ.design, sim$col.design,
+             sim$det.design, run = FALSE),
+    "3 dimensions"
+  )
+  expect_error(
+    bvsMSDOM(sim$y, sim$occ.design, sim$per.design, sim$col.design,
+             sim$det.design, tau.occ = list(intercept = c(10, 10)), run = FALSE),
+    "covariate"
+  )
+
+  ## a species recorded on different visits from the others
+  y2 <- sim$y
+  y2[2L, 1L, 2L, 1L] <- NA
+  expect_error(
+    bvsMSDOM(y2, sim$occ.design, sim$per.design, sim$col.design,
+             sim$det.design, run = FALSE),
+    "same for every species"
+  )
+})
+
+test_that("bvsMSDOM runs a short chain", {
+  skip_on_cran()
+  skip_without_nimble()
+  sim <- simMSDOM(N = 3, M = 40, J = 2, n.seasons = 3,
+                  n.cont = 2, n.cat = 1, seed = 33)
+  fit <- bvsMSDOM(sim$y, sim$occ.design, sim$per.design, sim$col.design,
+                  sim$det.design,
+                  n.iter = 400, n.burnin = 100, n.thin = 1, n.chains = 1,
+                  seed = 33, verbose = FALSE)
+
+  expect_equal(fit$type, "MSDOM")
+  ip <- inclusionProbs(fit)
+  expect_named(ip, c("z", "phi", "eta", "p"))
+  for (v in ip) {
+    expect_true(is.matrix(v))
+    expect_equal(nrow(v), 3L)
+    expect_true(all(v >= 0 & v <= 1, na.rm = TRUE))
+    expect_true(all(v[, 1L] == 1))
+  }
+  expect_output(print(fit), "multi-species dynamic")
+  expect_type(medianModel(fit), "list")
+})
+
+test_that("bvsMSDOM carries a separate V, G and prior per component", {
+  ## The four components may have entirely different candidate covariates, so
+  ## nothing about their dimensions may be shared. Build four designs that
+  ## differ in every way that matters and check they survive intact.
+  M <- 30L; J <- 2L; nT <- 3L; N <- 3L
+
+  occ <- bvsDesign(~ a1, data.frame(a1 = rnorm(M)))
+  per <- bvsDesignArray(~ b1 + b2, data.frame(b1 = rnorm(M * (nT - 1L)),
+                                              b2 = rnorm(M * (nT - 1L))),
+                        dims = c(M, nT - 1L))
+  col <- bvsDesignArray(~ c1 + g1,
+                        data.frame(c1 = rnorm(M * (nT - 1L)),
+                                   g1 = factor(rep(c("x", "y", "z"),
+                                                   length.out = M * (nT - 1L)))),
+                        dims = c(M, nT - 1L))
+  det <- bvsDesignArray(~ d1 + d2 + d3,
+                        data.frame(d1 = rnorm(M * J * nT), d2 = rnorm(M * J * nT),
+                                   d3 = rnorm(M * J * nT)),
+                        dims = c(M, J, nT))
+
+  ## V (design columns), G (covariate groups) and ncov all differ.
+  expect_equal(c(occ$numVars, per$numVars, col$numVars, det$numVars),
+               c(2L, 3L, 4L, 4L))
+  expect_equal(c(occ$ncov, per$ncov, col$ncov, det$ncov), c(1L, 2L, 2L, 3L))
+  ## The factor in the colonisation design occupies two columns but one group.
+  expect_equal(col$indexes_covariates, c(1, 2, 3, 3))
+
+  ## Each prior is sized from its own design.
+  expect_equal(length(bvsPrior(occ)$b), 2L)
+  expect_equal(dim(bvsPrior(det)$B), c(4L, 4L))
+
+  ## A prior built for one component is rejected for another.
+  expect_error(
+    bvsMSDOM(array(0, dim = c(N, M, J, nT)), occ, per, col, det,
+             prior.occ = bvsPrior(det), run = FALSE),
+    "prior.occ"
+  )
+
+  skip_on_cran()
+  skip_without_nimble()
+  sim <- simMSDOM(N = N, M = M, J = J, n.seasons = nT, seed = 40)
+  fit <- bvsMSDOM(sim$y, occ, per, col, det,
+                  n.iter = 300, n.burnin = 100, n.thin = 1, n.chains = 1,
+                  seed = 40, verbose = FALSE)
+
+  ip <- inclusionProbs(fit)
+  expect_equal(vapply(ip, ncol, integer(1)),
+               c(z = 2L, phi = 3L, eta = 3L, p = 4L))
+  expect_equal(colnames(ip$eta), col$labels)
+  expect_equal(fit$constants$V_z, 2L)
+  expect_equal(fit$constants$V_p, 4L)
+  expect_false(identical(fit$constants$ic_phi, fit$constants$ic_eta))
+})

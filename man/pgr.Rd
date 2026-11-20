@@ -4,7 +4,7 @@
 \alias{pgr}
 \title{Draw from a Polya-Gamma PG(n, z) distribution}
 \usage{
-pgr(n = integer(), z = double(0))
+pgr(n, z)
 }
 \arguments{
 \item{n}{Integer shape parameter, the number of Bernoulli trials.}

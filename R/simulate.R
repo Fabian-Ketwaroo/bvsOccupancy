@@ -327,3 +327,117 @@ simMSOM <- function(N = 20, S = 250, nvisits = 5, n.cont = 3, n.cat = 1, n.level
   for (k in seq_len(N)) out[k, ] <- mu + as.vector(L %*% stats::rnorm(V))
   out
 }
+
+#' Simulate from a multi-species dynamic occupancy model
+#'
+#' Generates data of the shape \code{\link{bvsMSDOM}} expects, from a known
+#' sparse community: every covariate group is either active for the community or
+#' not, and species-level coefficients are drawn around the community mean with
+#' the same block covariance the model assumes.
+#'
+#' @param N Number of species.
+#' @param M Number of sites.
+#' @param J Number of visits per site-season.
+#' @param n.seasons Number of seasons.
+#' @param n.cont,n.cat,n.levels Numbers of continuous and categorical
+#'   covariates, and levels per categorical covariate.
+#' @param mu.z,mu.phi,mu.eta,mu.p Optional community means, one entry per
+#'   covariate group including the intercept.
+#' @param tau.z,tau.phi,tau.eta,tau.p Optional community variances, one per
+#'   covariate group.
+#' @param Jindex Optional sites by seasons integer matrix of visit counts, for
+#'   unequal replication. Unsurveyed visits become \code{NA} for every species.
+#' @param seed Optional integer seed.
+#'
+#' @return A list with the detection array \code{y} (species by sites by visits
+#'   by seasons), the latent state \code{z}, the four designs, the species-level
+#'   and community-level truth, and the covariate data frames.
+#'
+#' @seealso \code{\link{bvsMSDOM}}
+#'
+#' @examples
+#' sim <- simMSDOM(N = 4, M = 50, J = 2, n.seasons = 3, seed = 1)
+#' dim(sim$y)
+#'
+#' @export
+simMSDOM <- function(N = 15, M = 200, J = 3, n.seasons = 5,
+                     n.cont = 3, n.cat = 1, n.levels = 3,
+                     mu.z = NULL, tau.z = NULL, mu.phi = NULL, tau.phi = NULL,
+                     mu.eta = NULL, tau.eta = NULL, mu.p = NULL, tau.p = NULL,
+                     Jindex = NULL, seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+  .checkSimDims(M, J, n.cont, n.cat, n.levels)
+  N <- as.integer(N); M <- as.integer(M); J <- as.integer(J)
+  nT <- as.integer(n.seasons)
+  if (is.na(N) || N < 2L) stop("`N` must be at least 2.", call. = FALSE)
+  if (is.na(nT) || nT < 2L) stop("`n.seasons` must be at least 2.", call. = FALSE)
+
+  ## Designs. Persistence and colonisation live on the nT - 1 transitions.
+  site <- .simCovariates(M, n.cont, n.cat, n.levels)
+  occ.design <- bvsDesign(stats::reformulate(names(site)), site)
+
+  trans <- .simCovariates(M * (nT - 1L), n.cont, n.cat, n.levels)
+  per.design <- bvsDesignArray(stats::reformulate(names(trans)), trans,
+                               dims = c(M, nT - 1L))
+  trans2 <- .simCovariates(M * (nT - 1L), n.cont, n.cat, n.levels)
+  col.design <- bvsDesignArray(stats::reformulate(names(trans2)), trans2,
+                               dims = c(M, nT - 1L))
+
+  visit <- .simCovariates(M * J * nT, n.cont, n.cat, n.levels)
+  det.design <- bvsDesignArray(stats::reformulate(names(visit)), visit,
+                               dims = c(M, J, nT))
+
+  comm.z   <- .communityTruth(occ.design, mu.z,   tau.z,   "z")
+  comm.phi <- .communityTruth(per.design, mu.phi, tau.phi, "phi")
+  comm.eta <- .communityTruth(col.design, mu.eta, tau.eta, "eta")
+  comm.p   <- .communityTruth(det.design, mu.p,   tau.p,   "p")
+
+  beta.z   <- .drawSpecies(N, comm.z$mu.col,   comm.z$Sigma)
+  beta.phi <- .drawSpecies(N, comm.phi$mu.col, comm.phi$Sigma)
+  beta.eta <- .drawSpecies(N, comm.eta$mu.col, comm.eta$Sigma)
+  beta.p   <- .drawSpecies(N, comm.p$mu.col,   comm.p$Sigma)
+
+  psi <- matrix(0, N, M)
+  z <- array(0L, dim = c(N, M, nT))
+  y <- array(0, dim = c(N, M, J, nT))
+
+  for (k in seq_len(N)) {
+    psi[k, ] <- as.vector(stats::plogis(occ.design$X %*% beta.z[k, ]))
+    z[k, , 1L] <- stats::rbinom(M, 1, psi[k, ])
+    for (t in seq_len(nT - 1L)) {
+      phi <- as.vector(stats::plogis(.slice(per.design$X, t) %*% beta.phi[k, ]))
+      eta <- as.vector(stats::plogis(.slice(col.design$X, t) %*% beta.eta[k, ]))
+      pr <- z[k, , t] * phi + (1 - z[k, , t]) * eta
+      z[k, , t + 1L] <- stats::rbinom(M, 1, pr)
+    }
+    for (t in seq_len(nT)) {
+      for (j in seq_len(J)) {
+        pkt <- as.vector(stats::plogis(.slice(det.design$X, j, t) %*% beta.p[k, ]))
+        y[k, , j, t] <- stats::rbinom(M, 1, z[k, , t] * pkt)
+      }
+    }
+  }
+
+  if (!is.null(Jindex)) {
+    Jindex <- matrix(as.integer(Jindex), nrow = nrow(as.matrix(Jindex)))
+    if (!identical(dim(Jindex), c(M, nT)) || any(Jindex < 1L) || any(Jindex > J)) {
+      stop("`Jindex` must be an M by n.seasons matrix of counts between 1 and J.",
+           call. = FALSE)
+    }
+    for (s in seq_len(M)) {
+      for (t in seq_len(nT)) {
+        if (Jindex[s, t] < J) y[, s, (Jindex[s, t] + 1L):J, t] <- NA
+      }
+    }
+  }
+
+  list(y = y, z = z, psi = psi,
+       occ.design = occ.design, per.design = per.design,
+       col.design = col.design, det.design = det.design,
+       beta.z = beta.z, beta.phi = beta.phi, beta.eta = beta.eta, beta.p = beta.p,
+       mu.z = comm.z$mu, tau.z = comm.z$tau,
+       mu.phi = comm.phi$mu, tau.phi = comm.phi$tau,
+       mu.eta = comm.eta$mu, tau.eta = comm.eta$tau,
+       mu.p = comm.p$mu, tau.p = comm.p$tau,
+       site.data = site, trans.data = trans, trans2.data = trans2, visit.data = visit)
+}

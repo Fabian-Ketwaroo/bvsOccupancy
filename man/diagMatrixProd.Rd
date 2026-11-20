@@ -4,7 +4,7 @@
 \alias{diagMatrixProd}
 \title{Right-multiply a matrix by a diagonal matrix}
 \usage{
-diagMatrixProd(X = double(2), D = double(1))
+diagMatrixProd(X, D)
 }
 \arguments{
 \item{X}{A numeric matrix.}

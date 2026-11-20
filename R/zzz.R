@@ -42,14 +42,21 @@
 ## keeps `R CMD check` quiet without changing any behaviour.
 utils::globalVariables(c(
   ## data and constants
-  "nsites", "nvisits", "nyears", "nspecies",
+  "nsites", "nvisits", "nyears", "nspecies", "N", "S", "J", "M", "Jindex",
   "X_psi", "X_phi", "X_eta", "X_p", "X_z",
   "ic_psi", "ic_phi", "ic_eta", "ic_p", "ic_z",
+  "V_psi", "V_phi", "V_eta", "V_p", "V_z",
+  "G_psi", "G_phi", "G_eta", "G_p", "G_z",
+  "b_psi", "b_phi", "b_eta", "b_p", "b_z",
+  "B_psi", "B_phi", "B_eta", "B_p", "B_z",
+  "az1", "az2", "bz1", "bz2", "ap1", "ap2", "bp1", "bp2",
+  "aphi1", "aphi2", "bphi1", "bphi2",
+  "aeta1", "aeta2", "ceta1", "ceta2",
   ## parameters
   "beta_psi", "beta_phi", "beta_eta", "beta_p", "beta_z",
   "gamma_psi", "gamma_phi", "gamma_eta", "gamma_p", "gamma_z",
   "mu_beta_z", "mu_beta_p", "tau_beta_z", "tau_beta_p",
-  "TBz", "TBp",
+  "TBz", "TBp", "TBphi", "TBeta",
   ## BUGS language functions
   "logit<-"
 ))

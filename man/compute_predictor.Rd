@@ -4,12 +4,7 @@
 \alias{compute_predictor}
 \title{Linear predictor under the current inclusion vector}
 \usage{
-compute_predictor(
-  X = double(2),
-  beta = double(1),
-  indexes_covariates = double(1),
-  gamma = double(1)
-)
+compute_predictor(X, beta, indexes_covariates, gamma)
 }
 \arguments{
 \item{X}{Full design matrix.}

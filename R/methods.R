@@ -12,7 +12,8 @@
 #' informative than any single threshold.
 #'
 #' @param object A fitted model from \code{\link{bvsSSOM}},
-#'   \code{\link{bvsSDOM}} or \code{\link{bvsMSOM}}.
+#'   \code{\link{bvsSDOM}}, \code{\link{bvsMSOM}} or
+#'   \code{\link{bvsMSDOM}}.
 #' @param component Which component to return. The default returns all of them.
 #'   Single-season models have \code{"psi"} and \code{"p"}; dynamic models add
 #'   \code{"phi"} and \code{"eta"}; multi-species models have \code{"z"} and
@@ -86,6 +87,7 @@ print.bvsOccupancy <- function(x, ...) {
                 SSOM = "single-season occupancy model",
                 SDOM = "dynamic occupancy model",
                 MSOM = "multi-species occupancy model",
+                MSDOM = "multi-species dynamic occupancy model",
                 x$type)
   cat("<bvsOccupancy>", lbl, "with Bayesian variable selection\n\n")
   cat("Call:\n  ", paste(deparse(x$call), collapse = "\n   "), "\n\n", sep = "")
@@ -128,7 +130,8 @@ print.bvsOccupancy <- function(x, ...) {
 #' Summarise a fitted model
 #'
 #' @param object A fitted model from \code{\link{bvsSSOM}},
-#'   \code{\link{bvsSDOM}} or \code{\link{bvsMSOM}}.
+#'   \code{\link{bvsSDOM}}, \code{\link{bvsMSOM}} or
+#'   \code{\link{bvsMSDOM}}.
 #' @param pars Optional regular expression; only parameters whose names match
 #'   are returned. For example \code{"^beta_psi"}.
 #' @param digits Number of digits to round to.

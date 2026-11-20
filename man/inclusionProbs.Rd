@@ -8,7 +8,8 @@ inclusionProbs(object, component = NULL, ...)
 }
 \arguments{
 \item{object}{A fitted model from \code{\link{bvsSSOM}},
-\code{\link{bvsSDOM}} or \code{\link{bvsMSOM}}.}
+\code{\link{bvsSDOM}}, \code{\link{bvsMSOM}} or
+\code{\link{bvsMSDOM}}.}
 
 \item{component}{Which component to return. The default returns all of them.
 Single-season models have \code{"psi"} and \code{"p"}; dynamic models add

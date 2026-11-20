@@ -3,7 +3,8 @@
 Bayesian variable selection for occupancy models, implemented in
 [nimble](https://r-nimble.org).
 
-The package fits single-season, dynamic and multi-species occupancy models in
+The package fits single-season, dynamic, multi-species and multi-species
+dynamic occupancy models in
 which every component of the model — occupancy, detection, persistence and
 colonisation — carries its own vector of binary inclusion indicators. Which
 covariates matter for detection is therefore answered separately from which
@@ -78,13 +79,14 @@ det <- bvsDesignArray(~ wind + observer, visit.data, dims = c(nsites, nvisits))
 occ$indexes_covariates   # tells you which columns form one covariate
 ```
 
-## The three models
+## The four models
 
 | Function | Model | Components under selection |
 |---|---|---|
 | `bvsSSOM()` | Single-season, single-species | occupancy, detection |
 | `bvsSDOM()` | Dynamic, single-species | initial occupancy, persistence, colonisation, detection |
 | `bvsMSOM()` | Single-season, multi-species | occupancy and detection, separately for each species |
+| `bvsMSDOM()` | Dynamic, multi-species | initial occupancy, persistence, colonisation, detection, separately for each species |
 
 Each returns an object of class `bvsOccupancy` holding the posterior samples as
 a `coda` object, along with the uncompiled nimble model, the MCMC

@@ -4,16 +4,7 @@
 \alias{dLgamma}
 \title{Marginal log-likelihood of an inclusion vector}
 \usage{
-dLgamma(
-  x = double(1),
-  X = double(2),
-  indexes_covariates = double(1),
-  b = double(1),
-  B = double(2),
-  Omega = double(1),
-  k = double(1),
-  log = integer(0, default = 1)
-)
+dLgamma(x, X, indexes_covariates, b, B, Omega, k, log = 1)
 }
 \arguments{
 \item{x}{Binary inclusion vector, one entry per covariate group (the

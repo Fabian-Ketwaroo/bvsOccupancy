@@ -11,3 +11,5 @@
 .Rhistory
 .DS_Store
 .Rhistory
+build/
+inst/doc/

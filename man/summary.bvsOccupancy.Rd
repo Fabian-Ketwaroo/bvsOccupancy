@@ -8,7 +8,8 @@
 }
 \arguments{
 \item{object}{A fitted model from \code{\link{bvsSSOM}},
-\code{\link{bvsSDOM}} or \code{\link{bvsMSOM}}.}
+\code{\link{bvsSDOM}}, \code{\link{bvsMSOM}} or
+\code{\link{bvsMSDOM}}.}
 
 \item{pars}{Optional regular expression; only parameters whose names match
 are returned. For example \code{"^beta_psi"}.}

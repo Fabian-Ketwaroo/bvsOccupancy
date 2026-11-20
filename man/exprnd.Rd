@@ -4,7 +4,7 @@
 \alias{exprnd}
 \title{Draw from an exponential distribution}
 \usage{
-exprnd(mu = double(0))
+exprnd(mu)
 }
 \arguments{
 \item{n, x, t, mu, z}{Arguments of the underlying algorithm.}

@@ -4,7 +4,7 @@
 \alias{tinvgauss}
 \title{Draw from a truncated inverse Gaussian distribution}
 \usage{
-tinvgauss(z = double(0), t = double(0))
+tinvgauss(z, t)
 }
 \arguments{
 \item{n, x, t, mu, z}{Arguments of the underlying algorithm.}
