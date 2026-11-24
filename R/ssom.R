@@ -35,6 +35,13 @@
 #' @param prior.occ,prior.det Priors on the regression coefficients, as
 #'   returned by \code{\link{bvsPrior}}. Defaults are constructed from the
 #'   corresponding design.
+#' @param d.bar.occ,d.bar.det Target model size for the prior on the inclusion
+#'   vector of each component: the prior expects this many active covariates,
+#'   so the prior inclusion probability per covariate is
+#'   \code{d.bar / ncov}. Must lie strictly between 0 and the number of
+#'   candidate covariates in that component. The default reproduces the
+#'   historical rule, which is 2 for three or more candidates. See the
+#'   "Prior on model size" section of the vignette.
 #' @param n.iter,n.burnin,n.thin,n.chains MCMC settings.
 #' @param inits Optional initial values. Either a named list applied to every
 #'   chain, or a list of such lists with one element per chain. Anything not
@@ -75,6 +82,7 @@
 #' @export
 bvsSSOM <- function(y, occ.design, det.design,
                     prior.occ = NULL, prior.det = NULL,
+                    d.bar.occ = NULL, d.bar.det = NULL,
                     n.iter = 15000, n.burnin = 5000, n.thin = 5, n.chains = 2,
                     inits = NULL, monitors = NULL, monitor.z = FALSE,
                     run = TRUE, summary = TRUE, seed = NULL, verbose = TRUE) {
@@ -114,6 +122,9 @@ bvsSSOM <- function(y, occ.design, det.design,
 
   prior.occ <- if (is.null(prior.occ)) bvsPrior(occ.design) else
     .checkPrior(prior.occ, occ.design, "prior.occ")
+
+  d.bar.occ <- .checkDbar(d.bar.occ, occ.design, "d.bar.occ")
+  d.bar.det <- .checkDbar(d.bar.det, det.design, "d.bar.det")
   prior.det <- if (is.null(prior.det)) bvsPrior(det.design) else
     .checkPrior(prior.det, det.design, "prior.det")
 
@@ -192,7 +203,8 @@ bvsSSOM <- function(y, occ.design, det.design,
                           "Omega_p", "gamma_p", "beta_p"))
 
   .addSiteLevelBVS(conf, "psi", occ.design,
-                   omega = "Omega_psi", gamma = "gamma_psi", beta = "beta_psi")
+                   omega = "Omega_psi", gamma = "gamma_psi", beta = "beta_psi",
+                     d.bar = d.bar.occ)
 
   ## Detection works on the flattened vector of observed site-visits. Both the
   ## row order of the flattened design and the two index vectors are taken from
@@ -217,7 +229,7 @@ bvsSSOM <- function(y, occ.design, det.design,
   }
   conf$addSampler(
     target = "gamma_p", type = gamma_sampler_p,
-    control = list(ncov = det.design$ncov,
+    control = list(ncov = det.design$ncov, d.bar = d.bar.det,
                    indexes_covariates = det.design$indexes_covariates,
                    designMatrix = Xp.flat, PG = "Omega_p", fixedEffects = "beta_p",
                    znodes = "z", ynodes = "y", zindex = zindex, omega_pos = omega_pos)
@@ -236,6 +248,7 @@ bvsSSOM <- function(y, occ.design, det.design,
   extra <- list(
     constants = constants,
     designs = list(psi = occ.design, p = det.design),
+    d.bar = list(occ = d.bar.occ, det = d.bar.det),
     priors = list(psi = prior.occ, p = prior.det),
     data.dims = c(sites = M, visits = J),
     gamma.map = list(

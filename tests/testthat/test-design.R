@@ -114,3 +114,37 @@ test_that("indexes_covariates is stored as double, not integer", {
   expect_type(d$ncov, "integer")
   expect_type(b$ncov, "integer")
 })
+
+test_that(".defaultDbar reproduces the historical rule, except for one covariate", {
+  ## Two or more candidates: unchanged from the original samplers.
+  expect_equal(.defaultDbar(2L), 1)
+  expect_equal(.defaultDbar(3L), 2)
+  expect_equal(.defaultDbar(10L), 2)
+
+  ## One candidate: the old rule gave d_bar = ncov = 1, which makes the implied
+  ## Beta(1, 0) prior degenerate and forces that covariate into every model.
+  expect_equal(.defaultDbar(1L), 0.5)
+  expect_lt(.defaultDbar(1L), 1L)
+})
+
+test_that(".checkDbar validates against the design it applies to", {
+  d <- bvsDesign(~ x1 + x2 + x3, data.frame(x1 = rnorm(20), x2 = rnorm(20),
+                                            x3 = rnorm(20)))
+  expect_equal(d$ncov, 3L)
+
+  expect_equal(.checkDbar(NULL, d, "d.bar.occ"), 2)   # falls back to the default
+  expect_equal(.checkDbar(1, d, "d.bar.occ"), 1)
+  expect_equal(.checkDbar(2.5, d, "d.bar.occ"), 2.5)  # need not be an integer
+
+  ## The implied prior inclusion probability is d.bar / ncov, so the endpoints
+  ## are degenerate and must be refused.
+  expect_error(.checkDbar(0, d, "d.bar.occ"), "strictly between")
+  expect_error(.checkDbar(3, d, "d.bar.occ"), "strictly between")
+  expect_error(.checkDbar(-1, d, "d.bar.occ"), "strictly between")
+  expect_error(.checkDbar(c(1, 2), d, "d.bar.occ"), "single number")
+  expect_error(.checkDbar("a", d, "d.bar.occ"), "single number")
+
+  ## The message names the argument and the design it was checked against.
+  expect_error(.checkDbar(9, d, "d.bar.det"), "d.bar.det")
+  expect_error(.checkDbar(9, d, "d.bar.det"), "3")
+})

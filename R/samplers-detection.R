@@ -38,8 +38,9 @@ gamma_sampler_p <- nimbleFunction(
     S <- dim(X_p)[1]; M <- dim(X_p)[2]#; Trep <- dim(X_p)[3]
     fixedIndexes <- 1
     ncov <-  if(!is.null(control$ncov)) control$ncov else 7
-    d_bar <- ifelse(ncov <= 2, 1, 2)
-    d_bar <- ifelse(d_bar <= ncov, d_bar, 2)
+    ## Target model size. The prior inclusion probability per covariate is
+    ## d_bar / ncov, so d_bar must lie strictly inside (0, ncov).
+    d_bar <- if (!is.null(control$d.bar)) as.numeric(control$d.bar) else .defaultDbar(ncov)
     indexes_covariates <- as.numeric(if(!is.null(control$indexes_covariates)) control$indexes_covariates else 1:ncov)
     #ynodes <- model$getDependencies(target, stochOnly = TRUE, self = FALSE)
     ynodes <- model$expandNodeNames(control$ynodes, returnScalarComponents = TRUE) # excludes nodes with NA's

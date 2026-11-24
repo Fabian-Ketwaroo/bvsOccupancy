@@ -98,6 +98,109 @@ It is worth refitting at a couple of values to see how sensitive the inclusion
 probabilities are, since in variable selection the prior scale on the
 coefficients plays the role that a penalty parameter plays elsewhere.
 
+## Prior on model size
+
+`bvsPrior()` controls the prior on the coefficients. There is a second prior
+that is easy to overlook, because it is not an argument to anything. The add,
+delete and swap moves carry a prior ratio as well as a proposal ratio, and
+together they implement
+
+\deqn{\gamma_j \mid w \sim \mathrm{Bernoulli}(w), \qquad
+      w \sim \mathrm{Beta}(1, (q - \bar d)/\bar d),}
+
+where \eqn{q} is the number of candidate covariates and \eqn{\bar d} is a
+target model size the samplers set to two. That gives
+
+\deqn{\Pr(\gamma_j = 1) = \bar d / q, \qquad
+      \mathrm{E}[\text{model size}] = \bar d = 2,}
+
+so the prior expects about two active covariates however many are offered, and
+the prior inclusion probability per covariate falls as candidates are added:
+
+| candidate covariates | prior inclusion probability |
+|---|---|
+| 2  | 0.50 |
+| 3  | 0.67 |
+| 4  | 0.50 |
+| 5  | 0.40 |
+| 10 | 0.20 |
+| 20 | 0.10 |
+
+Three consequences are worth stating plainly.
+
+**With only a few candidates the prior is close to uniform**, so a covariate
+with no effect cannot be driven near zero however much data there is. The
+likelihood contributes a Bayes factor of roughly 0.2 against a null covariate;
+starting from a prior inclusion probability of 0.5 that lands it near 0.2, with
+enough variation between data sets to exceed 0.5 on some of them. That is the
+prior working as designed, not the selector failing. At ten candidates the
+prior inclusion probability is 0.2 and the same null covariate settles near
+0.05.
+
+**Adding candidates makes the selector more conservative about each one**,
+which is the opposite of the intuition from stepwise procedures. Dropping a
+covariate from the candidate set raises the inclusion probabilities of all the
+others.
+
+**An inclusion probability should be read against its prior.** With four
+candidates, 0.6 is barely above prior and means little; with twenty, the same
+number is strong evidence. If you report inclusion probabilities, report the
+number of candidates alongside them.
+
+## What the selector does and does not promise
+
+At 400 sites, five visits, eight candidate covariates and the default target
+model size, the operating characteristics are roughly these (computed from the
+Bayes factor the sampler sees, over 200 simulated data sets, with coefficients
+of 1.1 to 1.5 for the active covariates):
+
+| | inclusion probability |
+|---|---|
+| truly active covariate | 1.00 in every replicate |
+| null covariate, median | 0.08 |
+| null covariate, 90th percentile | 0.17 |
+| null covariate, worst seen | 0.72 |
+
+Power is not the difficulty at this sample size. The tail is. About 2.5% of
+data sets had at least one of five null covariates cross 0.5, purely because a
+covariate with no effect happened to correlate with the signal in that sample.
+
+That is ordinary behaviour for any variable selection method, and it is worth
+keeping in mind when reading a single fit: a covariate sitting just over 0.5 is
+not the same kind of finding as one sitting at 0.99. If a borderline covariate
+matters to your conclusions, refit at a different target model size and see
+whether it survives, and report the inclusion probability rather than a bare
+list of selected covariates.
+
+## Setting the target model size
+
+The target is an argument, one per component, named to match the coefficient
+priors:
+
+```{r dbar, eval = FALSE}
+fit <- bvsSSOM(y, occ.design, det.design,
+               d.bar.occ = 4,     # expect about four occupancy covariates
+               d.bar.det = 2)     # and about two for detection
+```
+
+`bvsSDOM()` and `bvsMSDOM()` additionally take `d.bar.per` and `d.bar.col`.
+Each must lie strictly between zero and the number of candidate covariates in
+its own component, since the prior inclusion probability it implies is
+`d.bar / ncov`. Leaving it unset keeps the historical default of two.
+
+Set it from what you believe before seeing the data, not from what makes the
+answer come out well. The honest use is to pick a value from subject knowledge,
+then refit at a lower and a higher value and report how much the inclusion
+probabilities move. Covariates with strong effects barely shift; it is the
+borderline ones that change, and knowing which those are is more informative
+than a single list of selected covariates.
+
+The resolved values are stored on the fitted object as `fit$d.bar`.
+
+The three-candidate row is not a typo. \eqn{\bar d} is 1 when there are at most
+two candidates and 2 otherwise, so three candidates with a target of two gives
+a prior inclusion probability of 2/3.
+
 ## A single-season model
 
 `simSSOM()` generates data from a known sparse model, which makes it easy to

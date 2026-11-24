@@ -1,4 +1,4 @@
-# bvsOccupancy 0.2.1
+# bvsOccupancy 0.3.0
 
 ## Bug fixes
 
@@ -22,6 +22,53 @@ on the original sampler code. Both change results.
   inner loop and draws a fresh proposal, as the algorithm requires. The inner
   flag is also reset for each new proposal. Omega draws were previously not from
   the Polya-Gamma distribution.
+
+## New features
+
+* The target model size behind the variable-selection moves is now an argument.
+  `bvsSSOM()` and `bvsMSOM()` take `d.bar.occ` and `d.bar.det`; `bvsSDOM()` and
+  `bvsMSDOM()` additionally take `d.bar.per` and `d.bar.col`. Each sets the
+  number of active covariates the prior expects for that component, so the
+  prior inclusion probability per covariate is `d.bar / ncov`. It was
+  previously fixed at 2 and could not be changed without editing the samplers,
+  which made a sensitivity analysis on the prior impossible. Leaving the
+  arguments unset reproduces the old behaviour exactly, and the resolved values
+  are stored on the fitted object as `fit$d.bar`.
+
+* The four gamma samplers accept `d.bar` in their `control` list, for anyone
+  assembling a model by hand rather than through the model functions.
+
+## Bug fixes (continued)
+
+* `.buildAndRun()` assembled the fitted object by naming each field of `extra`
+  explicitly, so a field added there and not named was dropped without warning.
+  Fields it does not name are now carried through, and `fit$d.bar` is populated.
+
+
+* With exactly one candidate covariate the old rule set the target model size
+  equal to the number of candidates, which makes the implied Beta(1, 0) prior
+  degenerate: the add move always accepted and the delete move never did, so
+  that covariate was forced into every model with inclusion probability 1. The
+  default is now 0.5 in that case, giving a prior inclusion probability of 0.5.
+  Designs with two or more candidate covariates are unaffected.
+
+## Documentation
+
+* The vignette gains a section on what the selector does and does not promise,
+  with operating characteristics at a representative design: active covariates
+  recovered in every replicate, null covariates with a median inclusion
+  probability of 0.08, and about a 2.5% chance per data set that one of five
+  nulls crosses 0.5.
+
+* The vignette gains a section on the prior over model size. The add, delete
+  and swap moves implement a Beta-Binomial prior whose inclusion probability is
+  `d_bar / ncov` with `d_bar` fixed at 2, so the prior expects about two active
+  covariates however many are offered and the prior inclusion probability per
+  covariate falls as candidates are added: 0.5 with four candidates, 0.2 with
+  ten, 0.1 with twenty. With few candidates the prior is close to uniform and a
+  null covariate cannot be driven near zero, which is the prior behaving as
+  designed rather than the selector failing. Inclusion probabilities should be
+  read against that prior.
 
 Anyone who ran a model containing a factor, or who is relying on earlier Omega
 draws, should re-run. Results from models with only continuous covariates are

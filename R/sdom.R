@@ -38,6 +38,13 @@
 #' @param prior.occ,prior.per,prior.col,prior.det Priors on the regression
 #'   coefficients, as returned by \code{\link{bvsPrior}}. Defaults are
 #'   constructed from the corresponding design.
+#' @param d.bar.occ,d.bar.per,d.bar.col,d.bar.det Target model size for the prior on the inclusion
+#'   vector of each component: the prior expects this many active covariates,
+#'   so the prior inclusion probability per covariate is
+#'   \code{d.bar / ncov}. Must lie strictly between 0 and the number of
+#'   candidate covariates in that component. The default reproduces the
+#'   historical rule, which is 2 for three or more candidates. See the
+#'   "Prior on model size" section of the vignette.
 #' @inheritParams bvsSSOM
 #' @param monitors Additional parameters to monitor, on top of the coefficients
 #'   and indicators of all four components.
@@ -63,6 +70,7 @@
 #' @export
 bvsSDOM <- function(y, occ.design, per.design, col.design = per.design, det.design,
                     prior.occ = NULL, prior.per = NULL, prior.col = NULL, prior.det = NULL,
+                    d.bar.occ = NULL, d.bar.per = NULL, d.bar.col = NULL, d.bar.det = NULL,
                     n.iter = 25000, n.burnin = 10000, n.thin = 5, n.chains = 2,
                     inits = NULL, monitors = NULL, monitor.z = FALSE,
                     run = TRUE, summary = TRUE, seed = NULL, verbose = TRUE) {
@@ -116,6 +124,11 @@ bvsSDOM <- function(y, occ.design, per.design, col.design = per.design, det.desi
     .checkPrior(prior.per, per.design, "prior.per")
   prior.col <- if (is.null(prior.col)) bvsPrior(col.design) else
     .checkPrior(prior.col, col.design, "prior.col")
+
+  d.bar.occ <- .checkDbar(d.bar.occ, occ.design, "d.bar.occ")
+  d.bar.per <- .checkDbar(d.bar.per, per.design, "d.bar.per")
+  d.bar.col <- .checkDbar(d.bar.col, col.design, "d.bar.col")
+  d.bar.det <- .checkDbar(d.bar.det, det.design, "d.bar.det")
   prior.det <- if (is.null(prior.det)) bvsPrior(det.design) else
     .checkPrior(prior.det, det.design, "prior.det")
 
@@ -239,7 +252,8 @@ bvsSDOM <- function(y, occ.design, per.design, col.design = per.design, det.desi
                           "Omega_p", "gamma_p", "beta_p"))
 
   .addSiteLevelBVS(conf, "psi", occ.design,
-                   omega = "Omega_psi", gamma = "gamma_psi", beta = "beta_psi")
+                   omega = "Omega_psi", gamma = "gamma_psi", beta = "beta_psi",
+                     d.bar = d.bar.occ)
 
   ## Persistence and colonisation compare the state in season t with the state
   ## in season t + 1, so the two node vectors must be in the same order and the
@@ -286,7 +300,7 @@ bvsSDOM <- function(y, occ.design, per.design, col.design = per.design, det.desi
 
   conf$addSampler(
     target = "gamma_phi", type = gamma_sampler_phi,
-    control = list(ncov = per.design$ncov,
+    control = list(ncov = per.design$ncov, d.bar = d.bar.per,
                    indexes_covariates = per.design$indexes_covariates,
                    designMatrix = Xphi.flat, PG = "Omega_phi", fixedEffects = "beta_phi",
                    znodes = zn.str, ynodes = yn.str)
@@ -299,7 +313,7 @@ bvsSDOM <- function(y, occ.design, per.design, col.design = per.design, det.desi
   )
   conf$addSampler(
     target = "gamma_eta", type = gamma_sampler_eta,
-    control = list(ncov = col.design$ncov,
+    control = list(ncov = col.design$ncov, d.bar = d.bar.col,
                    indexes_covariates = col.design$indexes_covariates,
                    designMatrix = Xeta.flat, PG = "Omega_eta", fixedEffects = "beta_eta",
                    znodes = zn.str, ynodes = yn.str)
@@ -333,7 +347,7 @@ bvsSDOM <- function(y, occ.design, per.design, col.design = per.design, det.desi
   }
   conf$addSampler(
     target = "gamma_p", type = gamma_sampler_p,
-    control = list(ncov = det.design$ncov,
+    control = list(ncov = det.design$ncov, d.bar = d.bar.det,
                    indexes_covariates = det.design$indexes_covariates,
                    designMatrix = Xp.flat, PG = "Omega_p", fixedEffects = "beta_p",
                    znodes = "z", ynodes = "y", zindex = zindex, omega_pos = omega_pos)
@@ -353,6 +367,7 @@ bvsSDOM <- function(y, occ.design, per.design, col.design = per.design, det.desi
   extra <- list(
     constants = constants,
     designs = list(psi = occ.design, phi = per.design, eta = col.design, p = det.design),
+    d.bar = list(occ = d.bar.occ, per = d.bar.per, col = d.bar.col, det = d.bar.det),
     priors = list(psi = prior.occ, phi = prior.per, eta = prior.col, p = prior.det),
     data.dims = c(sites = M, visits = J, seasons = nT),
     gamma.map = list(

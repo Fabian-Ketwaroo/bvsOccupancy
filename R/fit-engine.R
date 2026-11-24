@@ -71,8 +71,7 @@
     if (ctrl$summary) smry <- .mcmcSummary(samples)
   }
 
-  structure(
-    list(
+  out <- list(
       samples = samples,
       samples.z = samples2,
       summary = smry,
@@ -86,18 +85,26 @@
       constants = extra$constants,
       designs = extra$designs,
       priors = extra$priors,
+      d.bar = extra$d.bar,
       gamma.map = extra$gamma.map,
       data.dims = extra$data.dims,
       mcmc.settings = ctrl,
       run.time = difftime(Sys.time(), t0, units = "mins")
-    ),
-    class = "bvsOccupancy"
   )
+
+  ## Carry through anything else the model function put in `extra`. Without
+  ## this, adding a field there and forgetting to name it above drops it
+  ## silently, which is how `d.bar` went missing from the fitted object.
+  leftover <- setdiff(names(extra), names(out))
+  if (length(leftover)) out[leftover] <- extra[leftover]
+
+  structure(out, class = "bvsOccupancy")
 }
 
 ## Assign the trio of samplers that drives variable selection on one component
 ## whose design is a plain site-level matrix (occupancy in every model).
-.addSiteLevelBVS <- function(conf, suffix, design, omega, gamma, beta) {
+.addSiteLevelBVS <- function(conf, suffix, design, omega, gamma, beta,
+                             d.bar = NULL) {
   conf$addSampler(
     target = omega, type = PG_sampler_psi,
     control = list(indexes_covariates = design$indexes_covariates,
@@ -106,7 +113,7 @@
   )
   conf$addSampler(
     target = gamma, type = gamma_sampler_psi,
-    control = list(ncov = design$ncov,
+    control = list(ncov = design$ncov, d.bar = d.bar,
                    indexes_covariates = design$indexes_covariates,
                    designMatrix = design$X,
                    PG = omega, fixedEffects = beta)

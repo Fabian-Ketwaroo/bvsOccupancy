@@ -34,8 +34,9 @@ gamma_sampler_psi <- nimbleFunction(
     N <- dim(X)[1]; M <- dim(X)[2]
     fixedIndexes <- 1
     ncov <-  if(!is.null(control$ncov)) control$ncov else 7
-    d_bar <- ifelse(ncov <= 2, 1, 2)#2#ncov  
-    d_bar <- ifelse(d_bar <= ncov, d_bar, 2)
+    ## Target model size. The prior inclusion probability per covariate is
+    ## d_bar / ncov, so d_bar must lie strictly inside (0, ncov).
+    d_bar <- if (!is.null(control$d.bar)) as.numeric(control$d.bar) else .defaultDbar(ncov)
     if (is.null(control$indexes_covariates)) {
       stop("`indexes_covariates` must be supplied in `control` for gamma_sampler_psi.", call. = FALSE)
     }

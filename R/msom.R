@@ -36,6 +36,13 @@
 #'   see \code{\link{bvsDesignArray}}. Shared by all species.
 #' @param prior.occ,prior.det Priors on the community means, as returned by
 #'   \code{\link{bvsPrior}}.
+#' @param d.bar.occ,d.bar.det Target model size for the prior on the inclusion
+#'   vector of each component: the prior expects this many active covariates,
+#'   so the prior inclusion probability per covariate is
+#'   \code{d.bar / ncov}. Must lie strictly between 0 and the number of
+#'   candidate covariates in that component. The default reproduces the
+#'   historical rule, which is 2 for three or more candidates. See the
+#'   "Prior on model size" section of the vignette.
 #' @param tau.occ,tau.det Inverse-gamma priors on the community variances, each
 #'   a list with elements \code{intercept} and \code{covariate}, giving the
 #'   shape and scale for the intercept variance and for the remaining
@@ -67,6 +74,7 @@
 #' @export
 bvsMSOM <- function(y, occ.design, det.design,
                     prior.occ = NULL, prior.det = NULL,
+                    d.bar.occ = NULL, d.bar.det = NULL,
                     tau.occ = list(intercept = c(10, 10), covariate = c(4, 0.75)),
                     tau.det = list(intercept = c(10, 10), covariate = c(4, 0.75)),
                     n.iter = 10000, n.burnin = 5000, n.thin = 5, n.chains = 2,
@@ -126,6 +134,9 @@ bvsMSOM <- function(y, occ.design, det.design,
 
   prior.occ <- if (is.null(prior.occ)) bvsPrior(occ.design) else
     .checkPrior(prior.occ, occ.design, "prior.occ")
+
+  d.bar.occ <- .checkDbar(d.bar.occ, occ.design, "d.bar.occ")
+  d.bar.det <- .checkDbar(d.bar.det, det.design, "d.bar.det")
   prior.det <- if (is.null(prior.det)) bvsPrior(det.design) else
     .checkPrior(prior.det, det.design, "prior.det")
   tau.occ <- .checkTau(tau.occ, "tau.occ")
@@ -235,7 +246,8 @@ bvsMSOM <- function(y, occ.design, det.design,
     .addSiteLevelBVS(conf, "z", occ.design,
                      omega = paste0("Omega_z[", i, ", ]"),
                      gamma = paste0("gamma_z[", i, ", ]"),
-                     beta  = paste0("beta_z[", i, ", ]"))
+                     beta  = paste0("beta_z[", i, ", ]"),
+                     d.bar = d.bar.occ)
 
     ynodes <- model$expandNodeNames(paste0("y[", i, ", , ]"), returnScalarComponents = TRUE)
     yidx <- .parseNodeIndices(ynodes)
@@ -258,7 +270,7 @@ bvsMSOM <- function(y, occ.design, det.design,
     }
     conf$addSampler(
       target = paste0("gamma_p[", i, ", ]"), type = gamma_sampler_p,
-      control = list(ncov = det.design$ncov,
+      control = list(ncov = det.design$ncov, d.bar = d.bar.det,
                      indexes_covariates = det.design$indexes_covariates,
                      designMatrix = Xp.flat,
                      PG = paste0("Omega_p[", i, ", , ]"),
@@ -323,6 +335,7 @@ bvsMSOM <- function(y, occ.design, det.design,
   extra <- list(
     constants = constants,
     designs = list(z = occ.design, p = det.design),
+    d.bar = list(occ = d.bar.occ, det = d.bar.det),
     priors = list(z = prior.occ, p = prior.det, tau.z = tau.occ, tau.p = tau.det),
     data.dims = c(species = N, sites = S, visits = nTrep),
     gamma.map = list(

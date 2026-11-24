@@ -10,6 +10,8 @@ bvsSSOM(
   det.design,
   prior.occ = NULL,
   prior.det = NULL,
+  d.bar.occ = NULL,
+  d.bar.det = NULL,
   n.iter = 15000,
   n.burnin = 5000,
   n.thin = 5,
@@ -35,6 +37,14 @@ sites by columns by visits; see \code{\link{bvsDesignArray}}.}
 \item{prior.occ, prior.det}{Priors on the regression coefficients, as
 returned by \code{\link{bvsPrior}}. Defaults are constructed from the
 corresponding design.}
+
+\item{d.bar.occ, d.bar.det}{Target model size for the prior on the inclusion
+vector of each component: the prior expects this many active covariates,
+so the prior inclusion probability per covariate is
+\code{d.bar / ncov}. Must lie strictly between 0 and the number of
+candidate covariates in that component. The default reproduces the
+historical rule, which is 2 for three or more candidates. See the
+"Prior on model size" section of the vignette.}
 
 \item{n.iter, n.burnin, n.thin, n.chains}{MCMC settings.}
 

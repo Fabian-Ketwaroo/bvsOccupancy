@@ -47,6 +47,13 @@
 #' @param prior.occ,prior.per,prior.col,prior.det Priors on the community means,
 #'   as returned by \code{\link{bvsPrior}}. Defaults are built from the
 #'   corresponding design.
+#' @param d.bar.occ,d.bar.per,d.bar.col,d.bar.det Target model size for the prior on the inclusion
+#'   vector of each component: the prior expects this many active covariates,
+#'   so the prior inclusion probability per covariate is
+#'   \code{d.bar / ncov}. Must lie strictly between 0 and the number of
+#'   candidate covariates in that component. The default reproduces the
+#'   historical rule, which is 2 for three or more candidates. See the
+#'   "Prior on model size" section of the vignette.
 #' @param tau.occ,tau.per,tau.col,tau.det Inverse-gamma priors on the community
 #'   variances, each a list with elements \code{intercept} and \code{covariate},
 #'   both of length two giving the shape and scale.
@@ -85,6 +92,7 @@
 bvsMSDOM <- function(y, occ.design, per.design, col.design = per.design, det.design,
                      prior.occ = NULL, prior.per = NULL, prior.col = NULL,
                      prior.det = NULL,
+                     d.bar.occ = NULL, d.bar.per = NULL, d.bar.col = NULL, d.bar.det = NULL,
                      tau.occ = list(intercept = c(10, 10), covariate = c(4, 0.75)),
                      tau.per = list(intercept = c(10, 10), covariate = c(4, 0.75)),
                      tau.col = list(intercept = c(10, 10), covariate = c(4, 0.75)),
@@ -167,6 +175,11 @@ bvsMSDOM <- function(y, occ.design, per.design, col.design = per.design, det.des
     .checkPrior(prior.per, per.design, "prior.per")
   prior.col <- if (is.null(prior.col)) bvsPrior(col.design) else
     .checkPrior(prior.col, col.design, "prior.col")
+
+  d.bar.occ <- .checkDbar(d.bar.occ, occ.design, "d.bar.occ")
+  d.bar.per <- .checkDbar(d.bar.per, per.design, "d.bar.per")
+  d.bar.col <- .checkDbar(d.bar.col, col.design, "d.bar.col")
+  d.bar.det <- .checkDbar(d.bar.det, det.design, "d.bar.det")
   prior.det <- if (is.null(prior.det)) bvsPrior(det.design) else
     .checkPrior(prior.det, det.design, "prior.det")
 
@@ -376,7 +389,8 @@ bvsMSDOM <- function(y, occ.design, per.design, col.design = per.design, det.des
     .addSiteLevelBVS(conf, "z", occ.design,
                      omega = sp("Omega_z", ""),
                      gamma = sp("gamma_z", ""),
-                     beta  = sp("beta_z", ""))
+                     beta  = sp("beta_z", ""),
+                     d.bar = d.bar.occ)
 
     ## Persistence and colonisation.
     zn <- sprintf("z[%d, 1:%d, 1:%d]", i, S, nT - 1L)
@@ -399,7 +413,7 @@ bvsMSDOM <- function(y, occ.design, per.design, col.design = per.design, det.des
     }
     conf$addSampler(
       target = sp("gamma_phi", ""), type = gamma_sampler_phi,
-      control = list(ncov = per.design$ncov,
+      control = list(ncov = per.design$ncov, d.bar = d.bar.per,
                      indexes_covariates = per.design$indexes_covariates,
                      designMatrix = Xphi.flat,
                      PG = paste0("Omega_phi[", i, ", , ]"),
@@ -416,7 +430,7 @@ bvsMSDOM <- function(y, occ.design, per.design, col.design = per.design, det.des
     )
     conf$addSampler(
       target = sp("gamma_eta", ""), type = gamma_sampler_eta,
-      control = list(ncov = col.design$ncov,
+      control = list(ncov = col.design$ncov, d.bar = d.bar.col,
                      indexes_covariates = col.design$indexes_covariates,
                      designMatrix = Xeta.flat,
                      PG = paste0("Omega_eta[", i, ", , ]"),
@@ -455,7 +469,7 @@ bvsMSDOM <- function(y, occ.design, per.design, col.design = per.design, det.des
     }
     conf$addSampler(
       target = sp("gamma_p", ""), type = gamma_sampler_p,
-      control = list(ncov = det.design$ncov,
+      control = list(ncov = det.design$ncov, d.bar = d.bar.det,
                      indexes_covariates = det.design$indexes_covariates,
                      designMatrix = Xp.flat,
                      PG = paste0("Omega_p[", i, ", , , ]"),
@@ -516,6 +530,7 @@ bvsMSDOM <- function(y, occ.design, per.design, col.design = per.design, det.des
   extra <- list(
     constants = constants,
     designs = list(z = occ.design, phi = per.design, eta = col.design, p = det.design),
+    d.bar = list(occ = d.bar.occ, per = d.bar.per, col = d.bar.col, det = d.bar.det),
     priors = list(z = prior.occ, phi = prior.per, eta = prior.col, p = prior.det,
                   tau.z = tau.occ, tau.phi = tau.per, tau.eta = tau.col, tau.p = tau.det),
     data.dims = c(species = N, sites = S, visits = J, seasons = nT),

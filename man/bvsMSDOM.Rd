@@ -14,6 +14,10 @@ bvsMSDOM(
   prior.per = NULL,
   prior.col = NULL,
   prior.det = NULL,
+  d.bar.occ = NULL,
+  d.bar.per = NULL,
+  d.bar.col = NULL,
+  d.bar.det = NULL,
   tau.occ = list(intercept = c(10, 10), covariate = c(4, 0.75)),
   tau.per = list(intercept = c(10, 10), covariate = c(4, 0.75)),
   tau.col = list(intercept = c(10, 10), covariate = c(4, 0.75)),
@@ -50,6 +54,14 @@ by seasons.}
 \item{prior.occ, prior.per, prior.col, prior.det}{Priors on the community means,
 as returned by \code{\link{bvsPrior}}. Defaults are built from the
 corresponding design.}
+
+\item{d.bar.occ, d.bar.per, d.bar.col, d.bar.det}{Target model size for the prior on the inclusion
+vector of each component: the prior expects this many active covariates,
+so the prior inclusion probability per covariate is
+\code{d.bar / ncov}. Must lie strictly between 0 and the number of
+candidate covariates in that component. The default reproduces the
+historical rule, which is 2 for three or more candidates. See the
+"Prior on model size" section of the vignette.}
 
 \item{tau.occ, tau.per, tau.col, tau.det}{Inverse-gamma priors on the community
 variances, each a list with elements \code{intercept} and \code{covariate},

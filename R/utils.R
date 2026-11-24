@@ -220,3 +220,30 @@
   if (isTRUE(verbose)) message(...)
   invisible(NULL)
 }
+
+## The target model size behind the add / delete / swap moves. The moves carry
+## a Beta-Binomial(1, (ncov - d_bar) / d_bar) prior on the inclusion vector, so
+## the prior inclusion probability per covariate is d_bar / ncov and the prior
+## expected model size is d_bar. This reproduces the historical rule, except
+## for a single candidate covariate, where d_bar = ncov made the prior
+## degenerate and forced that covariate into every model.
+.defaultDbar <- function(ncov) {
+  if (ncov <= 1L) 0.5 else if (ncov <= 2L) 1 else 2
+}
+
+## Validate a user supplied target model size against the design it applies to.
+.checkDbar <- function(d.bar, design, name) {
+  if (is.null(d.bar)) return(.defaultDbar(design$ncov))
+  d.bar <- suppressWarnings(as.numeric(d.bar))
+  if (length(d.bar) != 1L || is.na(d.bar)) {
+    stop(sprintf("`%s` must be a single number.", name), call. = FALSE)
+  }
+  if (d.bar <= 0 || d.bar >= design$ncov) {
+    stop(sprintf(paste0("`%s` must be strictly between 0 and the number of candidate ",
+                        "covariates (%d), because the prior inclusion probability it ",
+                        "implies is %s/%d. You gave %g."),
+                 name, design$ncov, name, design$ncov, d.bar), call. = FALSE)
+  }
+  d.bar
+}
+
