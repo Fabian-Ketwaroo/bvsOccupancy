@@ -1,3 +1,32 @@
+# bvsOccupancy 0.2.1
+
+## Bug fixes
+
+Two corrections to the samplers, both supplied by the author from upstream work
+on the original sampler code. Both change results.
+
+* The four Polya-Gamma samplers (`PG_sampler_psi`, `PG_sampler_p`,
+  `PG_sampler_phi`, `PG_sampler_eta`) built the index of included columns with
+  `length(gamma)`, the number of covariate GROUPS, where it should have been
+  `length(indexes_covariates)`, the number of design COLUMNS. Whenever a
+  categorical covariate was in the model the design matrix had more columns than
+  groups, and the trailing columns were silently left out of the linear
+  predictor used to draw Omega. Since the coefficient and indicator updates both
+  condition on Omega, every part of the fit was affected. Models with only
+  continuous covariates were unaffected, because there columns and groups
+  coincide.
+
+* `samplepg()` left the rejection branch of its alternating-series sampler
+  through `breakWhile = done = TRUE`, which exited both loops and returned the
+  current proposal instead of rejecting it. It now sets only `done`, leaves the
+  inner loop and draws a fresh proposal, as the algorithm requires. The inner
+  flag is also reset for each new proposal. Omega draws were previously not from
+  the Polya-Gamma distribution.
+
+Anyone who ran a model containing a factor, or who is relying on earlier Omega
+draws, should re-run. Results from models with only continuous covariates are
+affected by the `samplepg()` fix alone.
+
 # bvsOccupancy 0.2.0
 
 ## New features

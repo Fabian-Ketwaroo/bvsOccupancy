@@ -313,3 +313,39 @@ test_that("bvsMSDOM carries a separate V, G and prior per component", {
   expect_equal(fit$constants$V_p, 4L)
   expect_false(identical(fit$constants$ic_phi, fit$constants$ic_eta))
 })
+
+test_that("the Polya-Gamma update covers every design column, not just the groups", {
+  ## Regression test for a bug in the four PG samplers. `index_present` was
+  ## allocated and looped over with length(gamma), the number of covariate
+  ## GROUPS, rather than length(indexes_covariates), the number of design
+  ## COLUMNS. Whenever a categorical covariate is present the design matrix has
+  ## more columns than groups, so the trailing columns were silently left out of
+  ## the linear predictor used to draw Omega. Everything downstream conditions
+  ## on Omega, so the whole fit was affected, and only when a factor was in the
+  ## model. With all-continuous covariates columns and groups coincide and the
+  ## bug was invisible.
+  ##
+  ## The test puts a strongly active factor in the LAST covariate group, which
+  ## is exactly the group the old code dropped.
+  skip_on_cran()
+  skip_without_nimble()
+
+  ## Truth: x1 null, f1 strongly active. f1 is the last covariate group and
+  ## occupies the last two design columns, which is exactly what the old code
+  ## dropped.
+  sim <- simSSOM(M = 300, J = 5, n.cont = 1, n.cat = 1, n.levels = 3,
+                 beta.psi = c(0.4, 0, 2.2, -2.2), seed = 77)
+
+  ## Columns outnumber groups: intercept, x1, and two dummies for f1.
+  expect_equal(sim$occ.design$numVars, 4L)
+  expect_equal(sim$occ.design$ncov + 1L, 3L)
+  expect_equal(sim$occ.design$indexes_covariates, c(1, 2, 3, 3))
+
+  fit <- bvsSSOM(sim$y, sim$occ.design, sim$det.design,
+                 n.iter = 6000, n.burnin = 2000, n.chains = 2,
+                 seed = 77, verbose = FALSE)
+
+  ip <- inclusionProbs(fit, "psi")
+  expect_gt(unname(ip[3L]), 0.9)   # the factor, which the old code could not see
+  expect_lt(unname(ip[2L]), 0.5)   # the null continuous covariate
+})

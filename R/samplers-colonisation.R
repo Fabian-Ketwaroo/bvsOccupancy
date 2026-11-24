@@ -252,9 +252,9 @@ PG_sampler_eta <- nimbleFunction(
     
     # resize beta and X 
     l <- 0
-    index_present <- integer(length(gamma))
+    index_present <- integer(length(indexes_covariates))
     
-    for (i in 1:length(gamma)) {
+    for (i in 1:length(indexes_covariates)) {
       if(gamma[indexes_covariates[i]] == 1){
         index_present[l+1] <- i
         l <- l + 1

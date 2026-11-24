@@ -1,7 +1,7 @@
 Package: bvsOccupancy
 Type: Package
 Title: Bayesian Variable Selection for Occupancy Models
-Version: 0.2.0
+Version: 0.2.1
 Authors@R: c(
     person("Fabian", "Ketwaroo", email = "fabianketwaroo@gmail.com",
            role = c("aut", "cre")))

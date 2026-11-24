@@ -203,6 +203,7 @@ samplepg <- nimbleFunction(
       }
       
       # Step 2: Iteratively calculate Sn(X|z), starting at S1(X|z), until U ? Sn(X|z) for an odd n or U > Sn(X|z) for an even n
+      done <- FALSE   # reset inner-loop flag for each new proposal
       i = 1
       Sn = aterm(0, X, t)
       U = runif(1,0.0,1.0) * Sn
@@ -222,7 +223,7 @@ samplepg <- nimbleFunction(
         # Return to step 1 if n is even
         if(even & (U > Sn) ) {
           # nimbreak()
-          breakWhile = done = TRUE 
+          done = TRUE   # reject: leave the inner loop only and draw a new proposal (step 1)
           # break # this is where the problem is 
         }
         
